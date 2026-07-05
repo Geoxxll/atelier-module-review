@@ -199,7 +199,7 @@
       <dl class="glance">
         <div><dt>模块总数</dt><dd>15 张<small>+ 本总览 hub</small></dd></div>
         <div><dt>分层</dt><dd>4 层<small>生产骨架 / 闭环 / 横切 / 评测·基建</small></dd></div>
-        <div><dt>两套范式</dt><dd>open + closed<small>legacy 生产链路 / 闭环管线</small></dd></div>
+        <div><dt>两套范式</dt><dd>open + closed<small>legacy 基线 / 闭环管线（主用）</small></dd></div>
         <div><dt>编排</dt><dd>Temporal<small>确定性工作流 + Signal 人工闸</small></dd></div>
         <div><dt>定位</dt><dd>学习驱动<small>非商业交付，取舍以学习价值为先</small></dd></div>
       </dl>
@@ -217,55 +217,57 @@
           <li class="body"><strong>Reviewer</strong> 审查、打回、要求返修，直到达标。</li>
         </ul>
         <p class="body">这条流水线跑在 <strong>Temporal 工作流</strong>里——它负责确定性编排、失败重试、和「等你点头」的人工闸（Signal）。中间所有 LLM 调用都过一个 <strong>LLM Gateway</strong>，大产物走 <strong>Blackboard</strong>、消息走 <strong>NATS</strong>，团队还带三类<strong>长期记忆</strong>越用越懂你。</p>
-        <p class="body">而项目最有意思的一条主线是：Coder/Reviewer 有<strong>两套范式并存</strong>——早期的 <em>open-loop 全量生成</em>（legacy 生产链路）和对标 Claude Code 的 <em>closed-loop 读改测增量</em>（新管线）。两者物理隔离、各自能被 A/B 单独证明，谁更好用数据说话。下面的「模块地图」按层展开全部 15 块。</p>
+        <p class="body">而项目最有意思的一条主线是：Coder/Reviewer 有<strong>两套范式并存</strong>——早期的 <em>open-loop 全量生成</em>（legacy 基线，保留作对照）和对标 Claude Code 的 <em>closed-loop 读改测增量</em>（<strong>当前主链路</strong>）。两者物理隔离、各自能被 A/B 单独证明，谁更好用数据说话。上方「端到端主链路」画的就是当前的闭环管线；下面的「模块地图」按层展开全部 15 块。</p>
       </div>
     </section>
 
     <section id="flow">
       <div class="col">
-        <div class="eyebrow">图 · 端到端主链路</div>
-        <h2>一个需求，如何走完 PM → Architect → Coder → Reviewer</h2>
-        <p class="sub">这是 legacy 生产链路的主干（跑在 workflow-engine 的 FeatureWorkflow 里）。每一步都标了它落在哪个模块，点标题可跳到对应子页。</p>
+        <div class="eyebrow">图 · 端到端主链路（当前 = 闭环管线）</div>
+        <h2>一个需求，如何走完当前的闭环管线</h2>
+        <p class="sub"><strong>现在的主链路是「闭环管线」</strong>——PM/Architect 产出 PRD + TechSpec 后，交给 Planner 切片、Orchestrator 按波次并行跑闭环 loop、Merge 归并收口。每步标了落在哪个模块，点标题可跳子页。<em>与之对照的 legacy 线性链路见下方「两套范式」，只作对比、非当前主链路。</em></p>
       </div>
       <div class="plate">
-        <div class="plate-head"><span class="t">图 · <b>主链路</b> · FeatureWorkflow</span><span class="n">END-TO-END · main chain</span></div>
+        <div class="plate-head"><span class="t">图 · <b>主链路</b> · 闭环管线（⑤ Temporal 编排）</span><span class="n">END-TO-END · closed-loop</span></div>
         <div class="plate-body">
           <div class="flow">
             <div class="fstep"><div class="rail"><div class="dot">1</div><div class="line"></div></div>
-              <div class="card"><div class="who">用户 → <a href="web.html">前端工作台</a> → <a href="api.html">HTTP API</a></div><p class="what">提交需求（REFINE 或 DIRECT 模式）。API 写 <span class="k">workflows</span> 表 + <span class="k">temporal.start_workflow</span> 拉起流程；前端用 <b>SSE</b> 订阅事件实时上色。</p></div></div>
+              <div class="card"><div class="who">用户 → <a href="web.html">前端工作台</a> → <a href="api.html">HTTP API</a></div><p class="what">提交需求（REFINE 或 DIRECT 模式）。API 拉起流程；前端用 <b>SSE</b> 订阅事件实时上色。</p></div></div>
             <div class="fstep" data-c="slate"><div class="rail"><div class="dot">2</div><div class="line"></div></div>
-              <div class="card"><div class="who"><a href="workflow-engine.html">工作流编排</a> · PM 阶段</div><p class="what">需求打磨（grill 式 ≤20 轮）→ 澄清（≤3 轮硬闸）→ 写 <b>PRD</b>（注入 <a href="skills.html">Skill</a> + <a href="memory-system.html">SOP/语义记忆</a>）。全靠 <b>Signal</b> 等你点头。</p></div></div>
+              <div class="card"><div class="who"><a href="workflow-engine.html">工作流编排</a> · PM 阶段</div><p class="what">需求打磨（grill 式 ≤20 轮）→ 澄清（≤3 轮硬闸）→ 写 <b>PRD</b>（注入 <a href="skills.html">Skill</a> + <a href="memory-system.html">SOP/语义记忆</a>）。靠 <b>Signal</b> 等你点头。</p></div></div>
             <div class="fstep" data-c="slate"><div class="rail"><div class="dot">3</div><div class="line"></div></div>
-              <div class="card"><div class="who">Architect 阶段</div><p class="what">PRD → <b>TechSpec</b> 技术方案（resolve_tech_spec 批准/拒绝）。</p></div></div>
-            <div class="fstep" data-c="sage"><div class="rail"><div class="dot">4</div><div class="line"></div></div>
-              <div class="card"><div class="who"><a href="coder.html">Coder</a> 阶段</div><p class="what">在 Docker 沙箱里写代码、跑 install/lint/test。产物写 <a href="transport.html">Blackboard</a>。（闭环范式是<b>读→改→测→纠偏</b>增量循环。）</p></div></div>
-            <div class="fstep" data-c="sage"><div class="rail"><div class="dot">5</div><div class="line"></div></div>
-              <div class="card"><div class="who"><a href="reviewer.html">Reviewer</a> ↔ Coder 循环（≤3 轮）</div><p class="what">审查不通过 → Coder 返修。闭环范式的 Reviewer 会在<b>干净容器独立重跑测试</b>堵 self-gaming。</p></div></div>
-            <div class="fstep" data-c="ochre"><div class="rail"><div class="dot">6</div></div>
-              <div class="card"><div class="who">收尾 · 记忆蒸馏（fire-and-forget）</div><p class="what">workflow 完成后蒸馏<a href="memory-system.html">情景 / SOP / 语义三类记忆</a>，越用越懂你——不阻断主流程。</p></div></div>
+              <div class="card"><div class="who">Architect 阶段</div><p class="what">PRD → <b>TechSpec</b> 技术方案（resolve_tech_spec 批准/拒绝）。至此产出 <span class="k">(PRD, TechSpec)</span>，交给闭环管线。</p></div></div>
+            <div class="fstep"><div class="rail"><div class="dot">4</div><div class="line"></div></div>
+              <div class="card"><div class="who"><a href="planner.html">Planner</a> · 切片规划</div><p class="what"><span class="k">(PRD, TechSpec)</span> → <b>Slice + Blocked-by DAG</b>，把一个需求拆成多片可独立开工的切片（自纠偏四查门 + 有界重切）。</p></div></div>
+            <div class="fstep"><div class="rail"><div class="dot">5</div><div class="line"></div></div>
+              <div class="card"><div class="who"><a href="orchestrator.html">Orchestrator</a> · 波次并行闭环</div><p class="what">按拓扑<b>波次 fan-out</b>，每个切片并行跑一个<b>闭环 Loop B</b>：<a href="coder.html">闭环 Coder</a> 沙箱内 <b>读→改→跑测→看反馈→纠偏</b> ⇄ <a href="reviewer.html">对抗式 Reviewer</a> 干净容器独立重跑堵 self-gaming。就绪 = 前驱已 merge。</p><p class="note">纯 Reducer 决策 + 薄 asyncio/Temporal 壳，见 orchestrator 子页。</p></div></div>
+            <div class="fstep" data-c="sage"><div class="rail"><div class="dot">6</div><div class="line"></div></div>
+              <div class="card"><div class="who"><a href="merge.html">Merge</a> · 波次归并 → finalize</div><p class="what">每波把切片分支<b>确定性归并</b> + 过<b>回归门</b>（干净容器重跑），全部完成后 <span class="k">finalize_run</span> 收口（→ GitHub PR）。</p></div></div>
+            <div class="fstep" data-c="ochre"><div class="rail"><div class="dot">7</div></div>
+              <div class="card"><div class="who">收尾 · 记忆蒸馏（fire-and-forget）</div><p class="what">蒸馏<a href="memory-system.html">情景 / SOP / 语义三类记忆</a>，越用越懂你——不阻断主流程。</p></div></div>
           </div>
         </div>
       </div>
-      <p class="plate-cap col center"><b>并行进阶：</b>当一个需求大到要拆成多片并行做时，走的是「闭环管线」的另一条编排——<a href="planner.html" style="color:var(--clay)">Planner</a> 切成 Slice DAG → <a href="orchestrator.html" style="color:var(--clay)">Orchestrator</a> 按波次 fan-out 并行 → <a href="merge.html" style="color:var(--clay)">Merge</a> 归并。见对应子页。</p>
+      <p class="plate-cap col center"><b>闭环 vs legacy 的关键差别：</b>把 legacy 的「单个 Coder 线性全量生成 + Reflexion Reviewer ≤3 轮」换成「<a href="planner.html" style="color:var(--clay)">Planner</a> 切片 → <a href="orchestrator.html" style="color:var(--clay)">Orchestrator</a> 多片<b>并行</b>跑<b>增量读改测</b> + <b>对抗审查</b> → <a href="merge.html" style="color:var(--clay)">Merge</a> 归并」，由 <b>⑤ Temporal</b> 编排。上游 PM/Architect 阶段两套共用。<em>注：把 PM→Planner→…→GitHub 合成为单一 workflow 的全链路整合仍在收口（⑤），当前闭环管线（Planner→Orchestrator→Merge）已 standalone 贯通。</em></p>
     </section>
 
     <section id="paradigms">
       <div class="col">
         <div class="eyebrow">⑂ 两套范式</div>
-        <h2>open-loop 生产链路 vs closed-loop 闭环管线</h2>
-        <p class="sub">项目里 Coder/Reviewer 有两套并存、物理隔离的实现——这是本项目「用可 A/B 的方式学习 Agent 能力」纪律的最大体现。</p>
+        <h2>legacy open-loop（对照基线） vs closed-loop 闭环管线（当前主力）</h2>
+        <p class="sub">项目里 Coder/Reviewer 有两套并存、物理隔离的实现——<strong>闭环是当前主力（上方主链路即它）</strong>，legacy 线性链路保留作 <strong>A/B 对照基线</strong>。这是本项目「用可 A/B 的方式学习 Agent 能力」纪律的最大体现。</p>
       </div>
       <table class="cmp">
-        <thead><tr><th>维度</th><th>legacy 生产链路（open-loop）</th><th>闭环管线（closed-loop）</th></tr></thead>
+        <thead><tr><th>维度</th><th>legacy open-loop（对照基线）</th><th>closed-loop 闭环管线（当前主力）</th></tr></thead>
         <tbody>
           <tr><th>Coder 范式</th><td class="a">全量生成：一次性写出文件</td><td class="b">增量：读→改→跑测→看反馈→纠偏</td></tr>
           <tr><th>对标</th><td class="a">传统 codegen</td><td class="b">现代 coding agent（Claude Code 等）</td></tr>
           <tr><th>Reviewer</th><td class="a">Reflexion（Critique→Reflect）</td><td class="b">对抗式：干净容器独立重跑堵 self-gaming</td></tr>
           <tr><th>并行编排</th><td class="a">单需求线性</td><td class="b">Planner 切片 → Orchestrator 波次 → Merge</td></tr>
-          <tr><th>地位</th><td class="a">当前生产链路 + A/B baseline</td><td class="b">挑战者，赢下盲评 A/B 才替换（ADR-0013）</td></tr>
+          <tr><th>地位</th><td class="a">早期基线 · 保留作 A/B 对照臂</td><td class="b">当前主链路（在建/主用），持续 A/B 验证（ADR-0013）</td></tr>
         </tbody>
       </table>
-      <div class="callout"><span class="l">为什么两套并存</span>每加一层能力必须能被<strong>单独 A/B 证明有用</strong>，否则无法归因。闭环 vs 开环、±对抗 Reviewer 都是独立变量、分开验证——这条纪律贯穿记忆系统、Skills、评测子系统。本复盘集里 <b>🅐 生产骨架</b>（1–4）多为两套共用的底座，<b>🅑 闭环管线</b>（5–10）是新范式，<b>🅒 横切</b>（11–13）跨范式，<b>🅓 评测</b>（14）就是那把 A/B 尺子。</div>
+      <div class="callout"><span class="l">为什么两套并存</span>每加一层能力必须能被<strong>单独 A/B 证明有用</strong>，否则无法归因。闭环 vs 开环、±对抗 Reviewer 都是独立变量、分开验证——这条纪律贯穿记忆系统、Skills、评测子系统。本复盘集里 <b>🅐 系统骨架</b>（1–4）多为两套共用的底座，<b>🅑 闭环管线</b>（5–10）是当前主力范式，<b>🅒 横切</b>（11–13）跨范式，<b>🅓 评测</b>（14）就是那把 A/B 尺子。</div>
     </section>
 
     <section id="map">
@@ -275,7 +277,7 @@
         <p class="sub">按四层组织。每张子页结构一致：先建直觉 → 图版 I 静态架构 → 图版 II 动态流程 → 端到端例子 → 核心机制深挖 → 面试要点 → 限制与未来。</p>
       </div>
 
-      <div class="grp-h"><span class="gi">🅐 生产链路骨架</span><span class="gd">两套范式共用的基础设施与外壳</span></div>
+      <div class="grp-h"><span class="gi">🅐 系统骨架</span><span class="gd">两套范式共用的基础设施与外壳</span></div>
       <div class="mod-grid">
         <a class="mod-card" href="web.html"><div class="pn"><span>PLATE 01</span><span class="em">🖼️</span></div><div class="en">Frontend Workbench</div><div class="nm">前端工作台</div><div class="ds">四工位 rail + 6 产出卡 + SSE 事件流 + claude-style 暖色 token 重映射。</div></a>
         <a class="mod-card" href="api.html"><div class="pn"><span>PLATE 02</span><span class="em">🔌</span></div><div class="en">HTTP API</div><div class="nm">HTTP API</div><div class="ds">FastAPI REST + SSE-over-NATS + JWT/DEV_MODE + Postgres RLS 多租户。</div></a>

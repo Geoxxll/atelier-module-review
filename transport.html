@@ -334,6 +334,10 @@
           <span class="l">贯穿全篇的一句话 · 持久化 + 幂等</span>
           可靠不是靠「不出错」，而是靠「<strong>出错也能安全重来</strong>」：JetStream 保证「无 worker 不丢、崩溃就重投」，<strong>uuid5 幂等</strong>保证「重投/重试都不会重复烧 LLM」。两者配合，缺一不可——「深挖」里有完整推演。
         </div>
+        <div class="callout warn">
+          <span class="l">范式说明 · 示例是 legacy 链路，原语是活基础设施</span>
+          本页的传输<strong>原语</strong>（JetStream 异步完成 · uuid5 幂等 · Blackboard 指针瘦身）是<strong>范式无关的真实活基础设施</strong>。但文中示例用的 <span class="k">FeatureWorkflow</span> + round-0 Coder 派发是 <strong>legacy open-loop 链路</strong>；当前主链路的编码已走闭环管线（⑤ Temporal 编排的 <a href="orchestrator.html" style="color:var(--clay)">Orchestrator</a>），其中 <strong>Blackboard 尤其在退役路上</strong>（闭环用 git 分支传产物）。读时把示例当「投递机制怎么工作」，别当「Atelier 现在这么编码」。
+        </div>
       </div>
     </section>
 
@@ -512,7 +516,7 @@
         <p class="sub">用最真实的 round-0 Coder 派发把 task_id / payload / Blackboard 指针 / 完成 / 幂等命中串成一个连续故事。看完你就懂了整条投递→消费→回填→重来链路。</p>
       </div>
       <div class="e2e">
-        <div class="e2e-head"><span class="tag">场景 · FeatureWorkflow Step 3 首次派发 Coder</span><h3>workflow 让 Coder 写代码（round=0）</h3></div>
+        <div class="e2e-head"><span class="tag">场景 · legacy FeatureWorkflow Step 3 首次派发 Coder</span><h3>workflow 让 Coder 写代码（round=0）<span style="font-family:var(--mono);font-size:.6rem;color:var(--terra);letter-spacing:.06em"> · legacy 示例，演示投递机制</span></h3></div>
         <div class="e2e-body">
           <div class="beat"><div class="when">派发 · 编排层</div><div><p class="what">workflow 用 <b>uuid5(workflow_id, "coder-round-0")</b> 算出确定性 task_id，调 run_coder_agent Activity。Activity 组瘦身 payload、塞 token、publish。</p>
             <pre><span class="c"># workflows.py：确定性 task_id（replay 时不变，不能用 uuid4/now）</span>

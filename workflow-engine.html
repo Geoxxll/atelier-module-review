@@ -306,7 +306,7 @@
       <h1>工作流编排</h1>
       <p class="lede">一段能横跨几天、中途等人拍板、崩了还能原地续跑的「导演脚本」——把 PM→Architect→Coder→Reviewer 串成一条可靠流水线。</p>
       <div class="oneliner col">
-        一句话：<span class="k">FeatureWorkflow</span> 是整个系统的<b>总导演</b>。它自己<b>不干活、不碰 IO</b>——只用确定性的编排逻辑决定「下一步派谁、等哪个信号、循环几轮」。真正的活（LLM、数据库、NATS）全丢给 <b>Activity</b>；真正的拍板（批 PRD、审技术方案）靠 <b>Signal</b> 让人插手。崩溃后 Temporal 靠<b>重放</b>恢复到崩前一刻——代价是 Workflow 代码必须<b>字字确定</b>。
+        一句话：<span class="k">FeatureWorkflow</span> 是这条 <b>legacy 端到端链路的总导演</b>（PM/Architect/记忆蒸馏共用上游 + open-loop 编码基线；当前编码走闭环管线）。它自己<b>不干活、不碰 IO</b>——只用确定性的编排逻辑决定「下一步派谁、等哪个信号、循环几轮」。真正的活（LLM、数据库、NATS）全丢给 <b>Activity</b>；真正的拍板（批 PRD、审技术方案）靠 <b>Signal</b> 让人插手。崩溃后 Temporal 靠<b>重放</b>恢复到崩前一刻——代价是 Workflow 代码必须<b>字字确定</b>。
       </div>
       <dl class="glance">
         <div><dt>编排引擎</dt><dd>Temporal<small>Durable Execution · 重放恢复</small></dd></div>
@@ -344,6 +344,11 @@
         <p class="sub">先看这条流水线长什么样：从需求打磨到情景记忆，中间穿插三段「等人拍板」的循环和两处「悄悄写记忆」的旁支。这是理解整个模块的地图。</p>
       </div>
 
+      <div class="callout warn">
+        <span class="l">读前须知 · 这是 legacy 编排器</span>
+        这条 <span class="k">FeatureWorkflow</span> 是 Atelier 的<strong>早期 open-loop 端到端编排器</strong>。其中 <b>PM / Architect / 记忆蒸馏</b> 阶段是当前仍在用的共享上游（产出 PRD+TechSpec）；但下面 <b>Step 3 Coder 全量初次生成 + Step 4 Reviewer ≤3 轮循环</b>是 <strong>open-loop 基线</strong>——<strong>当前主链路的编码已改走闭环管线</strong>（<a href="planner.html" style="color:var(--clay)">Planner</a> 切片 → <a href="orchestrator.html" style="color:var(--clay)">Orchestrator</a> 波次并行闭环 → <a href="merge.html" style="color:var(--clay)">Merge</a> 归并，由 ⑤ Temporal 编排）。本模块的 open-loop 编码阶段 + Blackboard 在<strong>退役路上</strong>，保留作 A/B 对照基线。
+      </div>
+
       <div class="legend">
         <span><i class="swatch" style="background:var(--clay-bg);border-color:var(--clay)"></i>主链路 · 派 Agent 干活</span>
         <span><i class="swatch" style="background:var(--slate-bg);border-color:var(--slate)"></i>人机回环 · 等 Signal 拍板</span>
@@ -366,9 +371,9 @@
             <div class="fstep" data-c="slate"><div class="rail"><div class="dot">2</div><div class="line"></div></div>
               <div class="card"><div class="who">Step 2 · Architect 生成 TechSpec（人工闸门）</div><p class="what">Architect 出技术方案 → 用户审。<b>拒绝则直接 return status="rejected" 结束 Workflow</b>；批准才进 Coder。</p><p class="note">Signal：<span class="k">resolve_tech_spec({approved, reason})</span>——唯一能提前终止主链路的拍板。</p></div></div>
             <div class="fstep"><div class="rail"><div class="dot">3</div><div class="line"></div></div>
-              <div class="card"><div class="who">Step 3 · Coder 初次生成（round=0）</div><p class="what">派 Coder 按 PRD+TechSpec 子集写代码，产物写 Blackboard，NATS 只传指针 + 沙箱结果 + PR 链接。<b>无人工闸门，直接进 Review 环</b>。</p></div></div>
+              <div class="card"><div class="who">Step 3 · Coder 初次生成（round=0）<b style="color:var(--terra)"> · open-loop 基线</b></div><p class="what">派 <span class="k">run_coder_agent</span> 按 PRD+TechSpec 子集<b>一次性全量生成</b>代码，产物写 Blackboard，NATS 只传指针 + 沙箱结果 + PR 链接。<b>无人工闸门，直接进 Review 环</b>。</p><p class="note">这是 legacy open-loop：一把梭生成、不在沙箱里增量纠偏。当前主链路已换成<a href="coder.html" style="color:var(--clay)">闭环 Coder</a> 的读→改→跑测→纠偏。</p></div></div>
             <div class="fstep"><div class="rail"><div class="dot">4</div><div class="line"></div></div>
-              <div class="card"><div class="who">Step 4 · Review 循环（≤3 轮，硬闸）</div><p class="what">Reviewer 裁决 → 通过即 break；未通过且还有轮次则派 <b>Coder fix</b> 修，再回 Reviewer。这是唯一的 <b>Agent↔Agent</b> 环（无人参与），图版 II-a 展开。</p></div></div>
+              <div class="card"><div class="who">Step 4 · Review 循环（≤3 轮，硬闸）<b style="color:var(--terra)"> · open-loop 基线</b></div><p class="what"><span class="k">run_reviewer_agent</span>（Reflexion）裁决 → 通过即 break；未通过且还有轮次则派 <span class="k">run_coder_fix_agent</span> 修，再回 Reviewer。这是唯一的 <b>Agent↔Agent</b> 环（无人参与），图版 II-a 展开。</p><p class="note">legacy 路径：Reviewer 只看 Coder 报的结果、不独立重跑。当前主链路换成<a href="reviewer.html" style="color:var(--clay)">对抗式 Reviewer</a>（干净容器独立重跑）+ 每片独立闭环 loop。</p></div></div>
             <div class="fstep" data-c="sage"><div class="rail"><div class="dot">✦</div></div>
               <div class="card"><div class="who">Step 5 · 写情景记忆（fire-and-forget）</div><p class="what">全跑完后，把整条 workflow 产物蒸馏成 3–5 句摘要，写 <span class="k">agent_memory(episodic, role=workflow)</span>，留给未来的 Coder 检索。同样 try/except 兜底。</p></div></div>
           </div>
@@ -408,7 +413,7 @@
       </div>
 
       <div class="plate">
-        <div class="plate-head"><span class="t">图版 <b>II-a</b> · Review 循环 · Coder ↔ Reviewer（≤3 轮）</span><span class="n">DYNAMIC · agent-agent loop</span></div>
+        <div class="plate-head"><span class="t">图版 <b>II-a</b> · Review 循环 · Coder ↔ Reviewer（≤3 轮）<b style="color:var(--terra)"> · open-loop 基线</b></span><span class="n">DYNAMIC · legacy loop</span></div>
         <div class="plate-body">
           <div class="flow">
             <div class="fstep" data-c="slate"><div class="rail"><div class="dot">1</div><div class="line"></div></div>
@@ -627,7 +632,7 @@ if input.mode == <span class="g">"refine"</span>:
             <tr><td>PrdOutput schema 未嵌套化</td><td>user_stories 内联 AC 的重构未做</td><td>登记为开放技术债，见根 CONTEXT.md</td></tr>
           </tbody>
         </table>
-        <p class="body" style="margin-top:1.6rem">正在发生的更大变化：Atelier 主链路正从这套 <strong>Temporal 编排 + NATS/Blackboard</strong> 迁向 <strong>闭环多 Agent 管线（agentic-closed-loop）</strong>——并行 Orchestrator 已完整落地（#90–#96），下一步是 <strong>Temporal / Blackboard 逐步退役</strong>。本页记录的是当前生产主链路的样子；范式演进见闭环模块的模块文档集。</p>
+        <p class="body" style="margin-top:1.6rem">正在发生的更大变化：Atelier 主链路正从这套 <strong>Temporal 编排 + NATS/Blackboard</strong> 迁向 <strong>闭环多 Agent 管线（agentic-closed-loop）</strong>——并行 Orchestrator 已完整落地（#90–#96），下一步是 <strong>Temporal / Blackboard 逐步退役</strong>。本页记录的是这套 <strong>legacy 编排器</strong>的样子——其 open-loop 编码阶段（Step 3/4）是被闭环取代的 <strong>A/B 对照基线</strong>；当前主链路的编码见闭环模块（<a href="planner.html" style="color:var(--clay)">Planner</a> / <a href="orchestrator.html" style="color:var(--clay)">Orchestrator</a> / <a href="merge.html" style="color:var(--clay)">Merge</a>）。</p>
         <div class="callout"><span class="l">一句话总结</span>FeatureWorkflow 的全部设计，都是在回答一个问题：<strong>「一段又长、又要等人、又会崩的协作流程，怎么写得可靠？」</strong>答案是三件事——确定性守住重放、Signal 接住人、fire-and-forget 兜住旁支。守住这三条，其余都是细节。</p></div>
       </div>
     </section>

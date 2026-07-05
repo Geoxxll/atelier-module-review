@@ -1,0 +1,765 @@
+<title>前端工作台 · Atelier 模块复盘</title>
+<style>
+  /* ========== Atelier 模块复盘 · 制图板视觉系统（含左侧目录） ==========
+     借项目 claude-style 暖色系（ivory / clay coral / sage / terracotta），
+     推向「工作室制图板」：细线框 · 图版编号 · 页边旁注 · 地图式图例 · 左侧可收缩目录。
+     字体走系统栈，避免 CSP 下 CDN 字体静默回退。 */
+
+  :root {
+    --ground:#faf9f5; --paper:#ffffff; --paper-warm:#f4f1ea; --paper-warm2:#efece3;
+    --ink:#2a2622; --ink-soft:#6b6459; --ink-faint:#9a9284;
+    --hairline:#e4dfd3; --hairline-bold:#d5cfc0;
+    --clay:#c15f3c; --clay-bg:#f6e7df;
+    --sage:#4f8560; --sage-bg:#e2ede4;
+    --slate:#4a6b8a; --slate-bg:#e2e8ee;
+    --ochre:#9c7734; --ochre-bg:#efe7d4;
+    --terra:#b04a2f; --terra-bg:#f4e0d9;
+    --plate-frame: var(--hairline-bold);
+    --shadow: 0 1px 2px rgba(42,38,34,.04), 0 8px 30px -18px rgba(42,38,34,.18);
+    --serif: 'Iowan Old Style','Palatino Linotype',Palatino,Georgia,'Songti SC','Noto Serif SC',serif;
+    --sans: -apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Noto Sans SC',sans-serif;
+    --mono: 'SF Mono',ui-monospace,'JetBrains Mono',Menlo,'Cascadia Code',monospace;
+    --measure: 68ch; --topbar-h: 52px; --toc-w: 250px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground:#0d0d0c; --paper:#171613; --paper-warm:#1e1c18; --paper-warm2:#242119;
+      --ink:#ece7dd; --ink-soft:#a49b8c; --ink-faint:#7a7264;
+      --hairline:#2c2924; --hairline-bold:#3a362f;
+      --clay:#e0906c; --clay-bg:#33241d; --sage:#7fb28e; --sage-bg:#1e2a22;
+      --slate:#7c9cbb; --slate-bg:#1c2530; --ochre:#cba85f; --ochre-bg:#2a2418;
+      --terra:#e08363; --terra-bg:#31201a;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 34px -18px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="light"] {
+    --ground:#faf9f5; --paper:#ffffff; --paper-warm:#f4f1ea; --paper-warm2:#efece3;
+    --ink:#2a2622; --ink-soft:#6b6459; --ink-faint:#9a9284;
+    --hairline:#e4dfd3; --hairline-bold:#d5cfc0;
+    --clay:#c15f3c; --clay-bg:#f6e7df; --sage:#4f8560; --sage-bg:#e2ede4;
+    --slate:#4a6b8a; --slate-bg:#e2e8ee; --ochre:#9c7734; --ochre-bg:#efe7d4;
+    --terra:#b04a2f; --terra-bg:#f4e0d9;
+  }
+  :root[data-theme="dark"] {
+    --ground:#0d0d0c; --paper:#171613; --paper-warm:#1e1c18; --paper-warm2:#242119;
+    --ink:#ece7dd; --ink-soft:#a49b8c; --ink-faint:#7a7264;
+    --hairline:#2c2924; --hairline-bold:#3a362f;
+    --clay:#e0906c; --clay-bg:#33241d; --sage:#7fb28e; --sage-bg:#1e2a22;
+    --slate:#7c9cbb; --slate-bg:#1c2530; --ochre:#cba85f; --ochre-bg:#2a2418;
+    --terra:#e08363; --terra-bg:#31201a;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body { margin: 0; background: var(--ground); color: var(--ink); font-family: var(--serif); font-size: 18px; line-height: 1.7; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+  h1,h2,h3,h4 { text-wrap: balance; }
+
+  /* ---- top bar ---- */
+  .topbar { position: sticky; top: 0; z-index: 60; height: var(--topbar-h); display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0 clamp(.8rem, 3vw, 1.6rem); background: color-mix(in srgb, var(--ground) 88%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--hairline); }
+  .topbar .lft { display: flex; align-items: center; gap: .8rem; min-width: 0; }
+  .brand { font-family: var(--mono); font-size: .72rem; letter-spacing: .13em; text-transform: uppercase; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .brand b { color: var(--clay); font-weight: 600; }
+  .topbar .right { display: flex; align-items: center; gap: .7rem; }
+  .icon-btn { font-family: var(--mono); font-size: .9rem; line-height: 1; color: var(--ink-soft); background: transparent; border: 1px solid var(--hairline-bold); border-radius: 4px; padding: .4rem .55rem; cursor: pointer; transition: border-color .2s, color .2s; }
+  .icon-btn:hover { border-color: var(--clay); color: var(--clay); }
+  .backlink { font-family: var(--mono); font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft); text-decoration: none; border-bottom: 1px solid var(--hairline-bold); padding-bottom: 2px; transition: color .2s, border-color .2s; white-space: nowrap; }
+  .backlink:hover { color: var(--clay); border-color: var(--clay); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--clay); outline-offset: 2px; }
+
+  /* ---- shell: toc + content ---- */
+  .shell { display: flex; align-items: flex-start; }
+  .toc { position: sticky; top: var(--topbar-h); flex: 0 0 var(--toc-w); width: var(--toc-w); height: calc(100vh - var(--topbar-h)); overflow-y: auto; border-right: 1px solid var(--hairline); padding: 1.4rem 1rem 2rem 1.2rem; background: var(--ground); transition: margin-left .25s ease; }
+  .toc .toc-h { font-family: var(--mono); font-size: .64rem; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-faint); margin: 0 0 .9rem; padding-left: .4rem; }
+  .toc nav { display: flex; flex-direction: column; gap: 1px; }
+  .toc a { display: flex; align-items: baseline; gap: .55rem; font-family: var(--sans); font-size: .86rem; color: var(--ink-soft); text-decoration: none; padding: .42rem .5rem; border-radius: 5px; border-left: 2px solid transparent; transition: background .15s, color .15s, border-color .15s; }
+  .toc a .num { font-family: var(--mono); font-size: .64rem; color: var(--ink-faint); flex: none; width: 1.2em; }
+  .toc a:hover { background: var(--paper-warm); color: var(--ink); }
+  .toc a.active { color: var(--clay); background: var(--clay-bg); border-left-color: var(--clay); font-weight: 600; }
+  .toc a.active .num { color: var(--clay); }
+  .toc .toc-foot { margin-top: 1.4rem; padding-top: 1rem; border-top: 1px solid var(--hairline); font-family: var(--mono); font-size: .62rem; color: var(--ink-faint); line-height: 1.6; letter-spacing: .04em; }
+
+  .shell.collapsed .toc { margin-left: calc(-1 * var(--toc-w) - 2px); }
+
+  .content { flex: 1 1 auto; min-width: 0; }
+  .cwrap { max-width: 1040px; margin: 0 auto; padding: 0 clamp(1rem, 4vw, 2.6rem); }
+  .col { max-width: var(--measure); }
+  .col.center { margin-left: auto; margin-right: auto; }
+
+  @media (max-width: 900px) {
+    .toc { position: fixed; z-index: 55; top: var(--topbar-h); left: 0; box-shadow: var(--shadow); margin-left: calc(-1 * var(--toc-w) - 4px); }
+    .shell.tocopen .toc { margin-left: 0; }
+    .shell.collapsed .toc { margin-left: calc(-1 * var(--toc-w) - 4px); }
+  }
+
+  /* ---- hero ---- */
+  .hero { padding: clamp(2.4rem, 6vw, 4.4rem) 0 2.2rem; border-bottom: 1px solid var(--hairline); }
+  .plate-no { font-family: var(--mono); font-size: .72rem; letter-spacing: .2em; text-transform: uppercase; color: var(--clay); }
+  .hero h1 { font-family: var(--serif); font-weight: 600; font-size: clamp(2.1rem, 5vw, 3.4rem); line-height: 1.08; letter-spacing: -.01em; margin: .5rem 0 0; }
+  .hero .lede { font-size: 1.25rem; color: var(--ink-soft); max-width: 42ch; margin: 1rem 0 0; text-wrap: pretty; }
+  .oneliner { margin-top: 1.6rem; padding: 1rem 1.2rem; border-left: 3px solid var(--clay); background: var(--clay-bg); border-radius: 0 4px 4px 0; font-size: 1.04rem; }
+  .oneliner b { color: var(--clay); font-weight: 600; }
+  .glance { display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); gap: 1px; margin-top: 2rem; background: var(--hairline); border: 1px solid var(--hairline); border-radius: 6px; overflow: hidden; }
+  .glance div { background: var(--paper); padding: 1rem 1.1rem; }
+  .glance dt { font-family: var(--mono); font-size: .62rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); }
+  .glance dd { margin: .35rem 0 0; font-size: 1rem; font-weight: 600; }
+  .glance dd small { display: block; font-weight: 400; font-size: .8rem; color: var(--ink-soft); font-family: var(--sans); }
+
+  /* ---- section ---- */
+  section { padding: clamp(2.4rem, 5.5vw, 4rem) 0; border-bottom: 1px solid var(--hairline); scroll-margin-top: calc(var(--topbar-h) + 12px); }
+  .eyebrow { font-family: var(--mono); font-size: .72rem; letter-spacing: .17em; text-transform: uppercase; color: var(--clay); }
+  h2 { font-family: var(--serif); font-weight: 600; font-size: clamp(1.55rem, 3.4vw, 2.2rem); line-height: 1.16; letter-spacing: -.01em; margin: .5rem 0 0; }
+  h2 + .sub { color: var(--ink-soft); font-size: 1.08rem; margin: .7rem 0 0; max-width: var(--measure); }
+  h3 { font-family: var(--serif); font-weight: 600; font-size: 1.26rem; margin: 2.2rem 0 .6rem; }
+  p { margin: 1rem 0; } p.body, li.body { max-width: var(--measure); }
+  strong { font-weight: 600; }
+  .k { font-family: var(--mono); font-size: .85em; background: var(--paper-warm); border: 1px solid var(--hairline); border-radius: 3px; padding: .05em .38em; color: var(--clay); }
+  ul.tight { padding-left: 1.2rem; } ul.tight li { margin: .4rem 0; max-width: var(--measure); }
+
+  /* ---- plate ---- */
+  .plate { margin: 2rem 0 .8rem; border: 1px solid var(--plate-frame); border-radius: 8px; background: var(--paper); box-shadow: var(--shadow); overflow: hidden; }
+  .plate-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding: .7rem 1.1rem; border-bottom: 1px solid var(--hairline); background: var(--paper-warm); }
+  .plate-head .t { font-family: var(--mono); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); }
+  .plate-head .t b { color: var(--clay); }
+  .plate-head .n { font-family: var(--mono); font-size: .66rem; color: var(--ink-faint); letter-spacing: .08em; }
+  .plate-body { padding: clamp(1.1rem, 3vw, 1.9rem); overflow-x: auto; }
+  .plate-cap { font-family: var(--sans); font-size: .89rem; color: var(--ink-soft); margin: .2rem 0 2rem; max-width: var(--measure); }
+  .plate-cap b { color: var(--ink); font-weight: 600; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: .5rem 1.2rem; padding: .9rem 1.1rem; border: 1px dashed var(--hairline-bold); border-radius: 6px; background: var(--paper); margin: 1.6rem 0; }
+  .legend span { display: inline-flex; align-items: center; gap: .5rem; font-family: var(--mono); font-size: .71rem; letter-spacing: .03em; color: var(--ink-soft); }
+  .swatch { width: 13px; height: 13px; border-radius: 3px; border: 1px solid rgba(0,0,0,.12); flex: none; }
+
+  /* ---- three-memory cards ---- */
+  .three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; min-width: 720px; }
+  .memcard { border: 1px solid var(--hairline-bold); border-radius: 8px; overflow: hidden; background: var(--paper); }
+  .memcard > header { padding: .9rem 1rem; border-bottom: 1px solid var(--hairline); }
+  .memcard[data-c="clay"] > header { background: var(--clay-bg); }
+  .memcard[data-c="sage"] > header { background: var(--sage-bg); }
+  .memcard[data-c="ochre"] > header { background: var(--ochre-bg); }
+  .memcard h4 { margin: 0; font-family: var(--serif); font-size: 1.14rem; font-weight: 600; }
+  .memcard h4 small { display: block; font-family: var(--mono); font-size: .64rem; letter-spacing: .12em; text-transform: uppercase; font-weight: 400; margin-top: .2rem; }
+  .memcard[data-c="clay"] h4 small { color: var(--clay); }
+  .memcard[data-c="sage"] h4 small { color: var(--sage); }
+  .memcard[data-c="ochre"] h4 small { color: var(--ochre); }
+  .memrow { padding: .65rem 1rem; border-bottom: 1px solid var(--hairline); font-size: .9rem; line-height: 1.5; }
+  .memrow:last-child { border-bottom: 0; }
+  .memrow dt { font-family: var(--mono); font-size: .58rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: .2rem; }
+  .memrow dd { margin: 0; }
+  .memrow.mono dd { font-family: var(--mono); font-size: .8rem; color: var(--ink-soft); }
+
+  /* ---- LAYERED architecture map ---- */
+  .layers { min-width: 660px; display: flex; flex-direction: column; gap: 0; }
+  .lyr { display: grid; grid-template-columns: 84px 1fr; gap: 1rem; align-items: stretch; }
+  .lyr .tag { font-family: var(--mono); font-size: .6rem; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); writing-mode: vertical-rl; text-orientation: mixed; text-align: center; padding: .4rem 0; border-right: 1px solid var(--hairline); display: flex; align-items: center; justify-content: center; }
+  .lyr .band { padding: .3rem 0; }
+  .lyr2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .node { border: 1px solid var(--hairline-bold); border-radius: 7px; padding: .7rem .9rem; background: var(--paper); }
+  .node .lbl { font-family: var(--mono); font-size: .58rem; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-faint); display: block; margin-bottom: .3rem; }
+  .node .nm { font-family: var(--mono); font-weight: 600; font-size: .92rem; color: var(--ink); }
+  .node .ds { font-family: var(--sans); font-size: .8rem; color: var(--ink-soft); margin-top: .25rem; line-height: 1.45; }
+  .node.write { border-color: color-mix(in srgb, var(--sage) 45%, var(--hairline)); background: var(--sage-bg); }
+  .node.read { border-color: color-mix(in srgb, var(--slate) 45%, var(--hairline)); background: var(--slate-bg); }
+  .node.cap { border-color: color-mix(in srgb, var(--clay) 40%, var(--hairline)); }
+  .node.store { border-color: color-mix(in srgb, var(--ochre) 45%, var(--hairline)); background: var(--ochre-bg); }
+  .capgrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: .55rem; }
+  .capgrid .mini { border: 1px solid var(--hairline-bold); border-radius: 6px; padding: .5rem .55rem; background: var(--paper); text-align: center; }
+  .capgrid .mini b { font-family: var(--mono); font-size: .78rem; color: var(--clay); display: block; }
+  .capgrid .mini small { font-family: var(--sans); font-size: .68rem; color: var(--ink-soft); }
+  .flowbar { display: grid; grid-template-columns: 84px 1fr; gap: 1rem; }
+  .flowbar .arr { grid-column: 2; display: flex; justify-content: space-around; gap: 1rem; padding: .35rem 0; }
+  .flowbar .arr .a { font-family: var(--mono); font-size: .68rem; letter-spacing: .04em; display: inline-flex; align-items: center; gap: .4rem; padding: .1rem .5rem; border-radius: 20px; }
+  .arr .a.w { color: var(--sage); background: var(--sage-bg); }
+  .arr .a.r { color: var(--slate); background: var(--slate-bg); }
+  .arr .a .v { font-size: .82rem; }
+
+  /* ---- DB schema ---- */
+  .schema { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; min-width: 640px; }
+  .tbl { border: 1px solid var(--hairline-bold); border-radius: 8px; overflow: hidden; background: var(--paper); font-family: var(--mono); font-size: .8rem; }
+  .tbl > .th { padding: .6rem .9rem; background: var(--paper-warm); border-bottom: 1px solid var(--hairline); font-weight: 600; color: var(--ink); display: flex; justify-content: space-between; }
+  .tbl > .th .file { color: var(--ink-faint); font-size: .68rem; font-weight: 400; }
+  .tbl .fld { display: flex; justify-content: space-between; gap: 1rem; padding: .32rem .9rem; border-bottom: 1px solid var(--hairline); }
+  .tbl .fld:last-child { border-bottom: 0; }
+  .tbl .fld .ty { color: var(--ink-faint); font-size: .72rem; }
+  .tbl .fld.pk .nmn { color: var(--clay); font-weight: 600; }
+  .tbl .fld.idx { background: var(--paper-warm2); color: var(--ink-soft); font-size: .72rem; }
+  .tbl .fld.vec .ty { color: var(--sage); } .tbl .fld.cnt .ty { color: var(--clay); }
+
+  /* ---- flow (vertical stepped) ---- */
+  .flow { display: flex; flex-direction: column; gap: 0; min-width: 600px; }
+  .fstep { display: grid; grid-template-columns: 42px 1fr; gap: 1rem; }
+  .fstep .rail { display: flex; flex-direction: column; align-items: center; }
+  .fstep .dot { width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--clay); color: var(--clay); background: var(--paper); font-family: var(--mono); font-size: .76rem; font-weight: 600; display: grid; place-items: center; flex: none; }
+  .fstep .line { width: 1.5px; flex: 1; background: var(--hairline-bold); margin: 4px 0; min-height: 14px; }
+  .fstep:last-child .line { display: none; }
+  .fstep .card { border: 1px solid var(--hairline-bold); border-radius: 7px; background: var(--paper); padding: .8rem 1rem; margin-bottom: 1rem; }
+  .fstep .who { font-family: var(--mono); font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); }
+  .fstep .what { margin: .25rem 0 0; font-size: .96rem; } .fstep .what b { font-weight: 600; }
+  .fstep .note { margin: .5rem 0 0; font-family: var(--sans); font-size: .81rem; color: var(--ink-soft); border-left: 2px solid var(--hairline-bold); padding-left: .6rem; }
+  .fstep[data-c="sage"] .dot { border-color: var(--sage); color: var(--sage); }
+  .fstep[data-c="slate"] .dot { border-color: var(--slate); color: var(--slate); }
+  .fstep[data-c="ochre"] .dot { border-color: var(--ochre); color: var(--ochre); }
+  .flow-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+  .flow-title { font-family: var(--mono); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; margin: 0 0 1rem; padding-bottom: .5rem; border-bottom: 1px solid var(--hairline); }
+  .flow-title.write { color: var(--sage); } .flow-title.read { color: var(--slate); }
+
+  @media (max-width: 820px) {
+    .three, .flow, .fstep, .layers, .schema, .capgrid { min-width: 0; }
+    .flow-2 { grid-template-columns: 1fr; }
+    .three { grid-template-columns: 1fr; } .schema { grid-template-columns: 1fr; }
+    .capgrid { grid-template-columns: repeat(2, 1fr); }
+    .lyr2 { grid-template-columns: 1fr; }
+    .lyr .tag { writing-mode: horizontal-tb; transform: none; border-right: 0; border-bottom: 1px solid var(--hairline); }
+    .lyr { grid-template-columns: 1fr; } .flowbar { grid-template-columns: 1fr; } .flowbar .arr { grid-column: 1; }
+  }
+
+  /* ---- E2E ---- */
+  .e2e { border: 1px solid var(--plate-frame); border-left: 4px solid var(--clay); border-radius: 8px; background: var(--paper); box-shadow: var(--shadow); overflow: hidden; margin: 1.4rem 0; }
+  .e2e-head { padding: 1rem 1.3rem; border-bottom: 1px solid var(--hairline); background: var(--paper-warm); }
+  .e2e-head .tag { font-family: var(--mono); font-size: .66rem; letter-spacing: .12em; text-transform: uppercase; color: var(--clay); }
+  .e2e-head h3 { margin: .3rem 0 0; }
+  .e2e-body { padding: .4rem 1.3rem 1.3rem; }
+  .beat { display: grid; grid-template-columns: 90px 1fr; gap: 1.1rem; padding: 1.1rem 0; border-bottom: 1px dashed var(--hairline); }
+  .beat:last-child { border-bottom: 0; }
+  .beat .when { font-family: var(--mono); font-size: .64rem; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-faint); padding-top: .2rem; }
+  .beat .what { margin: 0; } .beat .what b { color: var(--clay); font-weight: 600; }
+  @media (max-width: 620px) { .beat { grid-template-columns: 1fr; gap: .5rem; } }
+  pre { background: var(--paper-warm); border: 1px solid var(--hairline); border-radius: 6px; padding: .8rem 1rem; overflow-x: auto; font-family: var(--mono); font-size: .8rem; line-height: 1.6; color: var(--ink); margin: .7rem 0 0; }
+  pre .c { color: var(--ink-faint); } pre .g { color: var(--sage); } pre .r { color: var(--terra); } pre .b { color: var(--slate); } pre .y { color: var(--ochre); }
+  .micro-note { font-family: var(--sans); font-size: .84rem; color: var(--ink-soft); border-left: 2px solid var(--sage); padding-left: .6rem; margin-top: .8rem; }
+  .micro-note.clay { border-left-color: var(--clay); }
+
+  /* ---- deep ---- */
+  .deep { border: 1px solid var(--hairline-bold); border-radius: 8px; background: var(--paper); margin: 1.2rem 0; overflow: hidden; }
+  .deep > summary { cursor: pointer; padding: 1rem 1.2rem; font-family: var(--serif); font-weight: 600; font-size: 1.1rem; list-style: none; display: flex; align-items: center; gap: .7rem; }
+  .deep > summary::-webkit-details-marker { display: none; }
+  .deep > summary::before { content: "⊕"; font-family: var(--mono); color: var(--clay); font-size: 1.05rem; }
+  .deep[open] > summary::before { content: "⊖"; }
+  .deep > summary::after { content: attr(data-tag); margin-left: auto; font-family: var(--mono); font-size: .6rem; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); font-weight: 400; text-align: right; }
+  .deep .inner { padding: 0 1.2rem 1.3rem; border-top: 1px solid var(--hairline); }
+  .deep .inner > :first-child { margin-top: 1rem; }
+
+  .cmp { width: 100%; border-collapse: collapse; margin: 1.2rem 0; font-size: .9rem; }
+  .cmp th, .cmp td { text-align: left; padding: .55rem .8rem; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+  .cmp thead th { font-family: var(--mono); font-size: .62rem; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-faint); font-weight: 600; }
+  .cmp tbody th { font-family: var(--sans); font-weight: 600; white-space: nowrap; }
+  .cmp td.a { color: var(--clay); } .cmp td.b { color: var(--slate); }
+  .cmp tr:last-child td, .cmp tr:last-child th { border-bottom: 0; }
+
+  /* ---- interview ---- */
+  .iv { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 1rem; margin-top: 1.4rem; }
+  .ivcard { border: 1px solid var(--hairline-bold); border-top: 3px solid var(--clay); border-radius: 6px; background: var(--paper); padding: 1.05rem 1.15rem; }
+  .ivcard .q { font-family: var(--sans); font-size: .69rem; letter-spacing: .05em; text-transform: uppercase; color: var(--clay); font-weight: 600; }
+  .ivcard h4 { margin: .4rem 0 .5rem; font-family: var(--serif); font-size: 1.06rem; font-weight: 600; }
+  .ivcard p { margin: 0; font-size: .9rem; color: var(--ink-soft); }
+
+  .limits { width: 100%; border-collapse: collapse; font-size: .9rem; margin-top: 1rem; }
+  .limits th, .limits td { text-align: left; padding: .6rem .8rem; border-bottom: 1px solid var(--hairline); }
+  .limits thead th { font-family: var(--mono); font-size: .6rem; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-faint); }
+  .limits td:first-child { font-weight: 600; }
+
+  .callout { border: 1px solid var(--hairline-bold); border-left: 3px solid var(--sage); background: var(--sage-bg); border-radius: 0 6px 6px 0; padding: .9rem 1.1rem; margin: 1.4rem 0; font-size: .94rem; }
+  .callout.warn { border-left-color: var(--terra); background: var(--terra-bg); }
+  .callout .l { font-family: var(--mono); font-size: .62rem; letter-spacing: .09em; text-transform: uppercase; display: block; margin-bottom: .3rem; color: var(--sage); }
+  .callout.warn .l { color: var(--terra); }
+
+  .footnav { padding: 2.2rem 0 4rem; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; align-items: center; }
+  .footnav a { font-family: var(--mono); font-size: .76rem; letter-spacing: .05em; color: var(--ink-soft); text-decoration: none; border-bottom: 1px solid var(--hairline-bold); padding-bottom: 2px; }
+  .footnav a:hover { color: var(--clay); border-color: var(--clay); }
+  .footnav .meta { font-family: var(--mono); font-size: .66rem; color: var(--ink-faint); letter-spacing: .05em; }
+  .scrim { position: fixed; inset: var(--topbar-h) 0 0 0; background: rgba(0,0,0,.28); z-index: 54; opacity: 0; pointer-events: none; transition: opacity .2s; }
+  .shell.tocopen ~ .scrim { opacity: 1; pointer-events: auto; }
+  @media (min-width: 901px) { .scrim { display: none; } }
+</style>
+
+<div class="topbar">
+  <div class="lft">
+    <button class="icon-btn" id="tocBtn" aria-label="切换目录">☰</button>
+    <span class="brand">Atelier · 模块复盘 <b>／ 前端工作台</b></span>
+  </div>
+  <div class="right">
+    <a class="backlink" href="overview.html" id="overview-link">← 总览</a>
+    <button class="icon-btn" id="themeToggle" aria-label="切换明暗主题">◐</button>
+  </div>
+</div>
+
+<div class="shell" id="shell">
+  <aside class="toc" id="toc">
+    <p class="toc-h">本页目录</p>
+    <nav id="tocNav">
+      <a href="#intro"><span class="num">00</span>先建直觉</a>
+      <a href="#static"><span class="num">I</span>静态架构</a>
+      <a href="#dynamic"><span class="num">II</span>动态流程</a>
+      <a href="#e2e"><span class="num">→</span>端到端例子</a>
+      <a href="#deep"><span class="num">⊕</span>核心机制深挖</a>
+      <a href="#interview"><span class="num">Q</span>面试要点</a>
+      <a href="#limits"><span class="num">…</span>限制与未来</a>
+    </nav>
+    <div class="toc-foot">01 / 前端工作台<br>四工位 rail · 6 种产出卡<br>SSE 投影 · claude-style 暖色</div>
+  </aside>
+
+  <main class="content">
+   <div class="cwrap">
+
+    <header class="hero" id="intro-top">
+      <div class="plate-no">Plate 01 — Frontend Workbench</div>
+      <h1>前端工作台</h1>
+      <p class="lede">一块能实时「看见」四个 AI 工匠接力干活的工作台——提交委托，看它沿 PM·ARCH·CODE·REVIEW 逐站显影。</p>
+      <div class="oneliner col">
+        一句话：前端把一条抽象的 Temporal 工作流，<b>翻译成看得见的工坊流水线</b>——一条<b>四工位导轨</b>指示当前进度，<b>六种产出卡</b>逐张显影，而驱动这一切的是一根 <b>SSE 事件流</b>：后端每推一个 <span class="k">workflow.{id}.event</span>，前端就把它 reduce 进「哪站在亮、哪张卡该出」的 UI 状态。
+      </div>
+      <dl class="glance">
+        <div><dt>技术</dt><dd>Next.js 16<small>Tailwind 4 · App Router</small></dd></div>
+        <div><dt>骨架</dt><dd>四工位 rail<small>PM · ARCH · CODE · REVIEW</small></dd></div>
+        <div><dt>产出</dt><dd>6 种卡<small>PRD/Spec/Build/Review/交付/画布</small></dd></div>
+        <div><dt>实时</dt><dd>SSE 事件流<small>EventSource · 服务端推</small></dd></div>
+        <div><dt>视觉</dt><dd>claude-style<small>ivory + clay coral 暖色</small></dd></div>
+      </dl>
+    </header>
+
+    <!-- ===== 00 导言 ===== -->
+    <section id="intro">
+      <div class="col">
+        <div class="eyebrow">先建直觉</div>
+        <h2>把「一条工作流」变成「一块看得见的工作台」</h2>
+        <p class="body">想象你把一张订单丢进一间手工作坊。作坊里有四位师傅——<strong>产品经理</strong>、<strong>架构师</strong>、<strong>程序员</strong>、<strong>审查员</strong>，他们沿一条流水线把活儿一站站往下传。你站在玻璃窗外，希望能<strong>实时看见</strong>：现在活儿传到了谁手上、每站产出了什么、卡在哪里需要你拍板。这块「玻璃窗」就是前端工作台干的事。</p>
+        <p class="body">工作台把这层观感做成三样东西：一条 <span class="k">rail</span> 导轨（当前委托停在哪一站，一眼可见），六张<strong>晒图卡</strong>（PRD / 技术方案 / 构建 / 审查 / 交付 / 需求画布，各站产物逐张显影），以及一份<strong>工单日志</strong>（逐条流水账）。而真正把这些点亮的，是后端一路推过来的事件。</p>
+        <div class="callout">
+          <span class="l">为什么是 SSE（服务端推）而不是轮询</span>
+          工作流是<strong>长时间、被动进展</strong>的——Agent 可能几十秒才产出一步，中途还会挂起等你裁决。轮询要么太密（浪费）、要么太疏（延迟）。<strong>SSE 让后端在「有事发生」的那一刻主动推</strong>，前端一根 <span class="k">EventSource</span> 长连接就够，浏览器原生支持、断线自动重连、比 WebSocket 更轻——这是「单向服务端推流」的教科书场景。
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== I 静态架构 ===== -->
+    <section id="static">
+      <div class="col">
+        <div class="eyebrow">图版 I · 静态架构</div>
+        <h2>一个页面组件，撑起导轨 + 六卡 + 日志</h2>
+        <p class="sub">整个工作台是单个 <span class="k">Home</span> 客户端组件（<span class="k">app/page.tsx</span>），内部由约 12 个函数组件拼成：外壳 + 导轨、六张产出卡、按阶段内联的交互面板。下面这张图是它的组件树。</p>
+      </div>
+
+      <div class="legend">
+        <span><i class="swatch" style="background:var(--clay-bg);border-color:var(--clay)"></i>外壳 / 骨架（导轨 · 输入 · 日志）</span>
+        <span><i class="swatch" style="background:var(--sage-bg);border-color:var(--sage)"></i>产出晒图卡（事件驱动显影）</span>
+        <span><i class="swatch" style="background:var(--slate-bg);border-color:var(--slate)"></i>交互面板（回信号驱动工作流）</span>
+      </div>
+
+      <div class="plate">
+        <div class="plate-head"><span class="t">图版 <b>I-a</b> · page.tsx 组件树</span><span class="n">STATIC · component tree</span></div>
+        <div class="plate-body">
+          <div class="layers">
+            <!-- 外壳层 -->
+            <div class="lyr">
+              <div class="tag">外壳 · Shell</div>
+              <div class="band">
+                <div class="node cap"><span class="lbl">根组件 · app/page.tsx</span><span class="nm">Home()（"use client"）</span><span class="ds">持有全部 UI state（workflowId / stations / 六卡数据 / interactionPhase），一个 useEffect 挂 SSE 订阅，AmbientMesh 暖色氛围垫底</span></div>
+                <div class="lyr2" style="margin-top:.7rem">
+                  <div class="node"><span class="lbl">签名骨架</span><span class="nm">.rail 四工位导轨</span><span class="ds">rail-track / rail-fill / rail-token + 四个 rail-node，data-status 驱动点亮</span></div>
+                  <div class="node"><span class="lbl">输入 + 流水账</span><span class="nm">委托单 · 工单日志</span><span class="ds">textarea + RouteSwitch 道岔；ledger[] 逐条滚动</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="flowbar"><div class="arr"><span class="a w"><span class="v">▼</span> 事件到达即显影</span><span class="a r">人工裁决处回信号 <span class="v">▼</span></span></div></div>
+            <!-- 产出卡层 -->
+            <div class="lyr">
+              <div class="tag">产出 · 6 卡</div>
+              <div class="band">
+                <div class="node write" style="padding-bottom:.8rem">
+                  <span class="lbl">六种晒图卡 · 各站产物逐张显影（.sheet.develop 淡入上浮）</span>
+                  <div class="capgrid" style="margin-top:.5rem">
+                    <div class="mini"><b>PrdCard</b><small>PM · PRD</small></div>
+                    <div class="mini"><b>TechSpecCard</b><small>ARCH · 方案</small></div>
+                    <div class="mini"><b>BuildCard</b><small>CODE · 沙箱/PR</small></div>
+                    <div class="mini"><b>ReviewCard</b><small>REVIEW · 评分</small></div>
+                    <div class="mini"><b>DeliveryCard</b><small>交付印章</small></div>
+                  </div>
+                  <div class="capgrid" style="margin-top:.55rem;grid-template-columns:repeat(1,1fr)">
+                    <div class="mini"><b>CanvasBoard</b><small>refine 需求画布 · confirmed / pending / parked 三栏</small></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="flowbar"><div class="arr"><span class="a r">sendSignal(path, body) <span class="v">▼</span></span></div></div>
+            <!-- 交互层 -->
+            <div class="lyr">
+              <div class="tag">交互 · Sheet</div>
+              <div class="band">
+                <div class="lyr2">
+                  <div class="node read"><span class="lbl">通用交互壳 · Sheet</span><span class="nm">refine 回复 / 澄清 / PRD 裁决 / 方案裁决</span><span class="ds">按 interactionPhase 内联渲染，输入后 POST 回一个 Temporal Signal</span></div>
+                  <div class="node read"><span class="lbl">道岔 · RouteSwitch</span><span class="nm">refine 打磨 / direct 直接</span><span class="ds">二选一，决定委托走哪条链路（透传 mode）</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="plate-cap col center"><b>怎么读：</b>竖着从上到下就是渲染层级——<b>外壳</b>永远在（导轨 + 输入 + 日志），<b>六卡</b>各自「有数据才出现」（<span class="k">{prdOutput && &lt;PrdCard/&gt;}</span> 条件渲染），<b>交互面板</b>只在轮到人裁决的那个 <span class="k">interactionPhase</span> 冒出来。左侧数据（事件）向下推着卡显影，右侧交互（裁决）向上回一个信号让工作流继续。</p>
+
+      <div class="col">
+        <h3>视觉底座：一套 token，两种主题</h3>
+        <p class="body">整块工作台不写死任何颜色，全部走 <span class="k">globals.css</span> 里的 CSS 变量（语义 token）。<strong>2026-07-01 从「Cyanotype 蓝图」深色美学重构为 claude-style 暖色</strong>时，关键手法是<strong>只换 token 的值、不动类名与 JSX</strong>——下面两栏就是同一批变量名在明 / 暗两套主题里的取值对照。</p>
+      </div>
+      <div class="plate">
+        <div class="plate-head"><span class="t">图版 <b>I-b</b> · globals.css 语义 token · 明 / 暗</span><span class="n">STATIC · design tokens</span></div>
+        <div class="plate-body">
+          <div class="schema">
+            <div class="tbl">
+              <div class="th"><span>:root / [data-theme=light]</span><span class="file">ivory 手稿</span></div>
+              <div class="fld"><span>--ground 纸底</span><span class="ty">#faf9f5</span></div>
+              <div class="fld"><span>--panel 卡面</span><span class="ty">#ffffff</span></div>
+              <div class="fld"><span>--ink 正文</span><span class="ty">#141413</span></div>
+              <div class="fld cnt"><span>--brass 活动/印章</span><span class="ty">#d97757</span></div>
+              <div class="fld vec"><span>--verdigris 通过</span><span class="ty">#5a8f6b</span></div>
+              <div class="fld"><span>--vermilion 失败</span><span class="ty">#c0563d</span></div>
+              <div class="fld idx"><span>serif 正文 × mono 数据 × sans UI</span><span class="ty">font</span></div>
+            </div>
+            <div class="tbl">
+              <div class="th"><span>[data-theme=dark]</span><span class="file">暖近黑</span></div>
+              <div class="fld"><span>--ground 纸底</span><span class="ty">#0d0d0c</span></div>
+              <div class="fld"><span>--panel 卡面</span><span class="ty">#1b1916</span></div>
+              <div class="fld"><span>--ink 正文</span><span class="ty">#f5f0e8</span></div>
+              <div class="fld cnt"><span>--brass 活动/印章</span><span class="ty">#e0855f</span></div>
+              <div class="fld vec"><span>--verdigris 通过</span><span class="ty">#6fae86</span></div>
+              <div class="fld"><span>--vermilion 失败</span><span class="ty">#d9775e</span></div>
+              <div class="fld idx"><span>永不纯黑 / 永不纯白（暖色留痕）</span><span class="ty">rule</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="plate-cap col center"><b>一眼看穿：</b>左右两栏<b>变量名一模一样</b>，只有取值不同——这就是「token 重映射」能让 JSX 几乎零改动就换皮的原因（深挖 ②）。字体走三角色分工：<b>serif</b>（Newsreader + Noto Serif SC）当正文与标题的「嗓音」，<b>mono</b>（JetBrains Mono）做数据微标签，<b>sans</b>（Inter）做 UI 控件。这套暖色也正是你眼前这份复盘页视觉的血缘来源。</p>
+
+      <div class="col">
+        <h3>两条路由：面向用户的台 + 面向开发者的台</h3>
+        <p class="body">前端有两个刻意分开的入口，不互相揉进对方外壳：</p>
+      </div>
+      <div class="plate">
+        <div class="plate-head"><span class="t">图版 <b>I-c</b> · 路由地图</span><span class="n">STATIC · routes</span></div>
+        <div class="plate-body">
+          <div class="lyr2">
+            <div class="node cap"><span class="lbl">路由 · app/page.tsx</span><span class="nm">/ 工作台</span><span class="ds">面向终端用户：提交委托、看四站显影、内联裁决。单租户视角、单条 workflow 的 SSE 订阅。</span></div>
+            <div class="node store"><span class="lbl">路由 · app/dev-console/page.tsx</span><span class="nm">/dev-console 可观测台</span><span class="ds">DEV_MODE-only 跨租户控制室：Registry → Run Ledger → Telemetry → LLM Wire 四窗格 + 记忆档案，走 /api/admin/* 只读 SSE。</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="plate-cap col center"><b>为什么分开：</b>工作台是产品，可观测台是调试仪表盘——信息密度、数据源（RLS 内 vs service-role 跨租户）、暴露面（生产可见 vs 仅 DEV_MODE）全不同。两者<b>共用同一套 token 与 primitives</b>（ThemeToggle / 暖色皮），但布局与叙事各走各的。</p>
+    </section>
+
+    <!-- ===== II 动态流程 ===== -->
+    <section id="dynamic">
+      <div class="col">
+        <div class="eyebrow">图版 II · 动态流程</div>
+        <h2>SSE 的一生：从订阅到把事件 reduce 成 UI</h2>
+        <p class="sub">前端不「拉」进度，而是订一根事件流，被动接收。核心是一个 <span class="k">handleMessage</span> reducer——每收一个事件，按 <span class="k">type</span> 决定「点亮哪站、出哪张卡、写哪条日志」。</p>
+      </div>
+
+      <div class="plate">
+        <div class="plate-head"><span class="t">图版 <b>II-a</b> · SSE 生命周期（提交 → 订阅 → 归约 → 渲染）</span><span class="n">DYNAMIC · SSE lifecycle</span></div>
+        <div class="plate-body">
+          <div class="flow">
+            <div class="fstep"><div class="rail"><div class="dot">1</div><div class="line"></div></div>
+              <div class="card"><div class="who">handleSubmit · 用户提交委托</div><p class="what"><b>POST</b> <span class="k">/api/projects/{id}/features</span>，拿回 <span class="k">{ workflow_id }</span> 写进 state；先手动把 PM 站点亮为 active。</p></div></div>
+            <div class="fstep" data-c="slate"><div class="rail"><div class="dot">2</div><div class="line"></div></div>
+              <div class="card"><div class="who">useEffect([workflowId]) · 开连接</div><p class="what"><span class="k">new EventSource(`/api/workflows/${id}/events`)</span>，给约 18 种事件名逐个 <span class="k">addEventListener</span>，外加 onmessage 兜底。</p><p class="note">workflowId 变化即重建连接；卸载 / 终止时 closedRef=true + es.close()，防止已关连接的迟到帧再改状态。</p></div></div>
+            <div class="fstep" data-c="slate"><div class="rail"><div class="dot">3</div><div class="line"></div></div>
+              <div class="card"><div class="who">收到帧 · JSON.parse</div><p class="what">每帧 <span class="k">evt.data</span> 反序列化成 <span class="k">AgentEvent</span>（扁平 camelCase）。解析失败（ping 帧等）静默忽略，不炸。</p></div></div>
+            <div class="fstep" data-c="clay"><div class="rail"><div class="dot">4</div><div class="line"></div></div>
+              <div class="card"><div class="who">handleMessage · 事件 → 状态归约</div><p class="what">一长串 <span class="k">if (eventType === …)</span> 分支：<b>coder_started</b> → 把 architect 置 done、coder 置 active；<b>coder_completed</b> → setBuild(…)；<b>review_completed</b> → setReview + 按 approved 决定 reviewer 站 done/active。每条都追加一行 ledger。</p><p class="note">四站状态机 + 六卡 setState 全在这一个函数里收口——事件是唯一的状态推进器。</p></div></div>
+            <div class="fstep" data-c="clay"><div class="rail"><div class="dot">5</div><div class="line"></div></div>
+              <div class="card"><div class="who">遇裁决点 · 切 interactionPhase</div><p class="what"><b>prd_pending_approval</b> / <b>tech_spec_pending_approval</b> / <b>clarification_needed</b> / <b>refine_turn</b> 会把 phase 切到对应交互态，内联冒出 Sheet 面板等人操作。</p></div></div>
+            <div class="fstep" data-c="sage"><div class="rail"><div class="dot">6</div><div class="line"></div></div>
+              <div class="card"><div class="who">终止事件 · 收束</div><p class="what"><b>workflow_completed / failed / rejected</b> 命中 <span class="k">TERMINAL_EVENTS</span> → es.close()、phase=done、点亮交付印章。React 按新 state 重渲染导轨与卡。</p></div></div>
+          </div>
+        </div>
+      </div>
+      <p class="plate-cap col center"><b>关键切分：</b>「连接生命周期」（开 / 关 / 防迟到帧）在 <b>useEffect</b> 里管；「事件语义」（哪站亮、哪卡出）在 <b>handleMessage</b> 这个 reducer 里管。UI 是 state 的纯函数——前端从不主动查进度，只把服务端推来的事件<b>投影</b>成界面。</p>
+
+      <div class="plate">
+        <div class="plate-head"><span class="t">图版 <b>II-b</b> · RefineCanvas · 纯投影（不持久化）</span><span class="n">DYNAMIC · ephemeral projection</span></div>
+        <div class="plate-body">
+          <div class="flow-2">
+            <div>
+              <p class="flow-title read">refine_canvas 事件 → 三栏视图</p>
+              <div class="flow">
+                <div class="fstep" data-c="clay"><div class="rail"><div class="dot">A</div><div class="line"></div></div>
+                  <div class="card"><div class="who">收到 refine_canvas 帧</div><p class="what">PM 打磨每一轮都推一帧，载荷是<b>当轮完整快照</b>：<span class="k">{ round, confirmed[], pending[], parked[] }</span>。</p></div></div>
+                <div class="fstep" data-c="clay"><div class="rail"><div class="dot">B</div><div class="line"></div></div>
+                  <div class="card"><div class="who">projectRefineCanvas(data)</div><p class="what">纯函数投影：容错读三个字符串数组（缺失/非数组降级为 []），产出 RefineCanvasView。<b>不做任何累积/合并</b>。</p></div></div>
+                <div class="fstep"><div class="rail"><div class="dot">C</div></div>
+                  <div class="card"><div class="who">setCanvas → CanvasBoard 覆盖渲染</div><p class="what">直接覆盖上一轮，渲染 已确认 / 待定 / 延展 idea 三栏。</p></div></div>
+              </div>
+            </div>
+            <div>
+              <p class="flow-title write">为什么它可以「不入库」</p>
+              <ul class="tight">
+                <li class="body">画布只是<strong>展示投影，不是真相源</strong>——唯一真相源是后端的 <span class="k">conversation_history</span>。</li>
+                <li class="body">每帧是完整快照，所以「覆盖」而非「合并」就够——<strong>无状态累积 = 无一致性负担</strong>。</li>
+                <li class="body">刷新 / 重连丢了也不怕：可由对话历史随时重算，前端不背持久化的锅。</li>
+                <li class="body">投影逻辑抽成<strong>零依赖纯函数</strong>（<span class="k">refineCanvas.mjs</span>），能用 node:test 直接验证「事件 → 三栏」的外部行为。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="plate-cap col center"><b>设计品味：</b>把「实时性」和「持久性」拆开——需要持久的（对话）留在后端当真相源，前端只做<b>无副作用的投影</b>。这让画布组件极简、可单测、可随时重建，是「让易变的东西无状态」的一个干净样本。</p>
+    </section>
+
+    <!-- ===== E2E ===== -->
+    <section id="e2e">
+      <div class="col">
+        <div class="eyebrow">端到端 · 走一遍</div>
+        <h2>一份「用户登录」委托，如何点亮四站</h2>
+        <p class="sub">跟着一条 direct 委托，看 SSE 事件如何逐个到达、依次点亮 PM → ARCH → CODE → REVIEW，并把六卡一张张显影出来。</p>
+      </div>
+      <div class="e2e">
+        <div class="e2e-head"><span class="tag">场景 · direct 直接交付</span><h3>George 提交「邮箱+密码登录，失败 5 次锁定」，全程盯着工作台</h3></div>
+        <div class="e2e-body">
+          <div class="beat"><div class="when">t0 · 提交</div><div><p class="what">textarea 写完，点「提交委托」。前端 POST features、拿 workflow_id、开 EventSource，PM 站先手动点亮。</p>
+            <pre><span class="c">// handleSubmit 成功后</span>
+POST /api/projects/…/features → { workflow_id: <span class="g">"a1b2c3d4-…"</span> }
+setWorkflowId(id)  <span class="c">// → useEffect 触发，EventSource 开连接</span>
+setStation(<span class="g">"pm"</span>, <span class="b">"active"</span>)   rail-token 落在 PM(01)</pre></div></div>
+
+          <div class="beat"><div class="when">t1 · PM 站</div><div><p class="what">连上后第一帧 <b>connected</b>「线路已接通」。PM 判定需求够清晰，直接产 PRD，推 <b>prd_pending_approval</b>。</p>
+            <pre><span class="c">// event: prd_pending_approval</span>
+{ type:"prd_pending_approval",
+  prd: { title:<span class="g">"邮箱密码登录"</span>,
+         acceptance_criteria:[<span class="g">"失败5次锁定账号"</span>, …] } }
+<span class="c">// handleMessage 归约</span>
+setPrdOutput(data.prd)   <span class="c">// → PrdCard 逐行显影</span>
+setStation(<span class="g">"pm"</span>, <span class="b">"done"</span>)
+setInteractionPhase(<span class="g">"prd_review"</span>)  <span class="c">// 冒出裁决 Sheet</span></pre>
+            <p class="micro-note clay">George 在裁决面板点「盖章放行」→ POST <span class="k">/approve-prd</span> 回一个 Temporal Signal，工作流继续。</p></div></div>
+
+          <div class="beat"><div class="when">t2 · ARCH 站</div><div><p class="what"><b>architect_started</b> → PM done、ARCH active；随后 <b>tech_spec_pending_approval</b> 带回技术方案，TechSpecCard 显影，再次等裁决。</p>
+            <pre><span class="c">// architect_started → tech_spec_pending_approval</span>
+setStation(<span class="g">"architect"</span>, <span class="b">"active"</span>)
+setTechSpec(data.techSpec)   rail-token 滑到 ARCH(02)</pre></div></div>
+
+          <div class="beat"><div class="when">t3 · CODE 站</div><div><p class="what">放行方案后 <b>coder_started</b> → CODE active。Coder 在 Docker 沙箱跑完，<b>coder_completed</b> 带沙箱结果 + PR 链接，BuildCard 显影。</p>
+            <pre><span class="c">// event: coder_completed</span>
+{ sandboxPassed:<span class="g">true</span>, fixAttempts:1, prUrl:<span class="g">"https://github…/pull/42"</span> }
+setBuild({ sandboxPassed:true, prUrl:… })
+tone = <span class="g">"pass"</span>   ledger += "代码产出 · 沙箱已跑"</pre></div></div>
+
+          <div class="beat"><div class="when">t4 · REVIEW 站</div><div><p class="what"><b>review_started</b> → REVIEW active；<b>review_completed</b> 带评分与裁决，ReviewCard 显影大评分 + 印章。未过则退回 Coder 返工（reviewer 站回 active），最多 3 轮。</p>
+            <pre><span class="c">// event: review_completed</span>
+{ approved:<span class="g">true</span>, overallScore:<span class="y">88</span>, hasCritical:false }
+setReview({ approved:true, overallScore:88 })
+setStation(<span class="g">"reviewer"</span>, ok ? <span class="b">"done"</span> : <span class="r">"active"</span>)</pre></div></div>
+
+          <div class="beat"><div class="when">t5 · 交付</div><div><p class="what"><b>workflow_completed</b> 命中 TERMINAL_EVENTS：DeliveryCard 盖下「Delivered」印章，es.close()、phase=done，「新委托」按钮出现。</p>
+            <pre><span class="c">// 终止事件收束</span>
+if (TERMINAL_EVENTS.has(type)) {
+  closedRef.current = true; es.close();
+  setInteractionPhase(<span class="g">"done"</span>); setDone(true);
+}
+<span class="c">// 四站全绿，rail-token 停在 REVIEW(04)</span></pre>
+            <p class="micro-note">一条委托的完整旅程：6 张卡张张显影、四站依次点亮，全由后端一串 SSE 事件驱动，前端只负责「翻译成看得见的进度」。</p></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 深挖 ===== -->
+    <section id="deep">
+      <div class="col">
+        <div class="eyebrow">核心机制 · 钻到实现级</div>
+        <h2>五个撑起工作台的机制</h2>
+        <p class="sub">展开看代码级细节，也是面试里最容易被追问「你前端具体怎么做的」的地方。</p>
+      </div>
+
+      <details class="deep" open data-tag="page.tsx · useEffect + handleMessage">
+        <summary>① SSE 订阅与「事件 → 状态归约」</summary>
+        <div class="inner">
+          <p class="body">工作台的心脏是一个 <span class="k">useEffect([workflowId])</span>：workflowId 一变就建连接，给约 18 种命名事件逐个挂监听，全部汇进同一个 <span class="k">handleMessage(evt, type)</span> reducer。它把「网络帧」翻译成「四站状态机 + 六卡 setState + 一行日志」。</p>
+          <pre>const es = new EventSource(`${API_BASE}/api/workflows/${workflowId}/events`);
+
+const handleMessage = (evt, eventType) => {
+  if (closedRef.current) return;              <span class="c">// 已关连接的迟到帧，丢弃</span>
+  let data; try { data = JSON.parse(evt.data); } catch { return; } <span class="c">// ping 帧静默忽略</span>
+
+  if (eventType === <span class="g">"coder_started"</span>) {
+    setStation(<span class="g">"architect"</span>, <span class="b">"done"</span>); setStation(<span class="g">"coder"</span>, <span class="b">"active"</span>);
+  } else if (eventType === <span class="g">"review_completed"</span>) {
+    const ok = data.approved ?? false;
+    setReview({ approved: ok, overallScore: data.overallScore ?? 0, … });
+    setStation(<span class="g">"reviewer"</span>, ok ? <span class="b">"done"</span> : <span class="r">"active"</span>);   <span class="c">// 未过=退回返工</span>
+  } <span class="c">/* …约 18 个分支… */</span>
+
+  setLedger(prev =&gt; [...prev, { id: ++eventCounter.current, type, text, tone, timestamp }]);
+  if (TERMINAL_EVENTS.has(eventType)) { closedRef.current = true; es.close(); setDone(true); }
+};
+eventTypes.forEach(t =&gt; es.addEventListener(t, e =&gt; handleMessage(e, t)));
+es.onmessage = e =&gt; handleMessage(e, <span class="g">"update"</span>);   <span class="c">// 无名帧兜底</span></pre>
+          <ul class="tight">
+            <li class="body"><strong>为什么命名事件 + onmessage 双挂</strong>：后端多数事件带 <span class="k">event:</span> 名（走 addEventListener），但也可能发无名帧（走 onmessage），两头都兜住不漏。</li>
+            <li class="body"><strong>closedRef 守卫</strong>：SSE 关闭是异步的，用一个 ref 标志挡住「关闭后迟到的帧再 setState」——否则会在已卸载/已完成的界面上乱改状态。</li>
+            <li class="body"><strong>reducer 收口</strong>：所有状态推进只在 handleMessage 里发生，读代码时「事件→界面」一处可查，是可维护性的关键。</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="deep" data-tag="globals.css · token 重映射">
+        <summary>② token 重映射：为什么换皮几乎不动 JSX？</summary>
+        <div class="inner">
+          <p class="body">2026-07-01 把整站从「Cyanotype 工程蓝图」深色美学重绘成 claude-style 暖色，却<strong>几乎没改一行 JSX</strong>。秘诀：颜色从不写死在组件里，而是全部引用语义 token；重构时<strong>只改 token 的值，类名 / 变量名 / DOM 结构原封不动</strong>。</p>
+          <pre><span class="c">/* 旧（蓝图）与新（claude 暖色）共用同一个变量名，只换值 */</span>
+:root, [data-theme="light"] {
+  --ground: <span class="g">#faf9f5</span>;    <span class="c">/* was: 深蓝图底 */</span>
+  --brass:  <span class="g">#d97757</span>;    <span class="c">/* clay coral：活动站 / 印章 / 强调 */</span>
+  --verdigris: <span class="g">#5a8f6b</span>; <span class="c">/* 暖 sage 绿：通过 */</span>
+}
+[data-theme="dark"] { --ground: <span class="g">#0d0d0c</span>; --brass: <span class="g">#e0855f</span>; … }
+
+<span class="c">// 组件侧一直是这样引用，重构前后一字未改：</span>
+&lt;div className="rail-fill" style={{ width: fillWidth }} /&gt;  <span class="c">// 背景色来自 --brass</span></pre>
+          <div class="callout"><span class="l">为什么这招值钱</span>把「设计决策」（具体色值）和「结构决策」（类名/DOM）解耦：换整套视觉语言变成「改一张变量表」，而非「全局搜替颜色、逐组件回归」。连旧类名 <span class="k">.develop</span>（原是蓝图显影模糊）都保留，只把动画重定义为暖色淡入上浮——名字是接口，值是实现。</div>
+          <p class="body">代价 / 边界：语义 token 必须<strong>起对名字</strong>（<span class="k">--brass</span> 叫「活动强调色」而非「蓝色」），否则重映射后名不副实（旧 <span class="k">--brass</span> 黄铜、新值 clay coral，名字已略微失真，属可接受的历史包袱）。</p>
+        </div>
+      </details>
+
+      <details class="deep" data-tag="layout.tsx · themeInit">
+        <summary>③ 无闪烁主题初始化 + localStorage 持久化</summary>
+        <div class="inner">
+          <p class="body">暗色模式最怕「白屏一闪」——SSR 先渲染 light，客户端 JS 再改 dark，中间那一帧刺眼白。解法：在 <span class="k">&lt;head&gt;</span> 里放一段<strong>阻塞式内联脚本，在首次 paint 之前</strong>就把主题落到 <span class="k">&lt;html data-theme&gt;</span>。</p>
+          <pre><span class="c">// layout.tsx —— 同步执行、先于 paint</span>
+const themeInit = `(function(){try{
+  var t = localStorage.getItem('atelier-theme');
+  if (t!=='light' &amp;&amp; t!=='dark')
+    t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark':'light';
+  document.documentElement.setAttribute('data-theme', t);
+}catch(e){}})();`;
+&lt;html data-theme="light" <span class="b">suppressHydrationWarning</span>&gt;
+  &lt;head&gt;…&lt;script dangerouslySetInnerHTML={{ __html: themeInit }} /&gt;&lt;/head&gt;</pre>
+          <ul class="tight">
+            <li class="body"><strong>先读 localStorage，再退回系统偏好</strong>：用户选过就尊重选择，没选过跟系统。</li>
+            <li class="body"><strong>suppressHydrationWarning</strong>：脚本会在水合前改 DOM 属性，React 会检测到 SSR/客户端不一致——这里刻意压掉这个警告（是正当的外部同步）。</li>
+            <li class="body"><strong>ThemeToggle 水合后单次从 DOM 回读</strong>真实主题（no-flash 脚本可能已改成 dark），再由用户点击 toggle 时写回 localStorage + 翻转 data-theme。</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="deep" data-tag="refineCanvas.mjs · 纯投影">
+        <summary>④ RefineCanvas 的临时投影：为什么坚持不入库</summary>
+        <div class="inner">
+          <p class="body">需求打磨每轮推一帧 <span class="k">refine_canvas</span>，前端把它渲染成「已确认 / 待定 / 延展 idea」三栏。关键克制：<strong>画布只是投影，不是真相源</strong>——不累积、不合并、不持久化。</p>
+          <pre><span class="c">// refineCanvas.mjs —— 零依赖纯函数，node:test 可直测</span>
+function asStringList(v) { return Array.isArray(v) ? v.filter(x =&gt; typeof x === "string") : []; }
+
+export function projectRefineCanvas(data) {
+  return {
+    round: typeof data?.round === "number" ? data.round : 0,
+    confirmed: asStringList(data?.confirmed),   <span class="c">// 每帧=当轮完整快照</span>
+    pending:   asStringList(data?.pending),      <span class="c">// 直接覆盖，不 merge</span>
+    parked:    asStringList(data?.parked),
+  };
+}</pre>
+          <div class="callout"><span class="l">取舍</span>把「持久」的责任留在后端的 <span class="k">conversation_history</span>（唯一真相源），前端做<strong>无状态覆盖</strong>。收益：组件极简、可单测、刷新/重连丢了能由历史重算；代价：断线期间的中间态不会自动补回（见「限制」的 SSE 重连回填）。这是「让易变层无状态」的一次干净应用。</div>
+        </div>
+      </details>
+
+      <details class="deep" data-tag="AmbientMesh / Reveal · a11y">
+        <summary>⑤ 动效原语：ambient mesh、scroll-reveal 与 reduced-motion</summary>
+        <div class="inner">
+          <p class="body">三个共享 primitives（<span class="k">app/components/</span>）承载 claude-style 的「有呼吸感但不喧哗」的动效，且每一个都尊重 <span class="k">prefers-reduced-motion</span>。</p>
+          <pre><span class="c">// AmbientMesh：光斑跟随光标，用 rAF lerp 而非 CSS transition</span>
+if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;  <span class="c">// 直接不启动 rAF</span>
+const frame = () =&gt; {
+  sx += (tx - sx) * <span class="y">EASE</span>;  sy += (ty - sy) * <span class="y">EASE</span>;   <span class="c">// 缓动追逐光标</span>
+  spot.style.transform = `translate3d(${sx}px,${sy}px,0)`;
+  <span class="c">// 附近的暖色光晕被「推开」，settled 后停帧省电</span>
+};</pre>
+          <ul class="tight">
+            <li class="body"><strong>AmbientMesh</strong>：几团重模糊暖色 blob 各自慢时钟漂移 + 光标光斑（rAF-lerp，比 CSS transition 更跟手），mask 向下淡出，垫在 hero 之下。</li>
+            <li class="body"><strong>Reveal</strong>：IntersectionObserver 进视口才加 <span class="k">.in</span> 触发淡入上浮，兄弟元素用 <span class="k">delay={i*70}</span> 错峰；reduced-motion 下 CSS 直接显示、无需 JS 特判。</li>
+            <li class="body"><strong>ThemeToggle</strong>：第三个共享原语，见深挖 ③。三者构成跨两条路由复用的 UI 底座。</li>
+            <li class="body"><strong>无障碍floor</strong>：globals.css 里 <span class="k">@media (prefers-reduced-motion: reduce)</span> 统一冻结 blob 漂移、隐藏光斑、关掉 stamp/rail 动画；<span class="k">:focus-visible</span> 全局可见焦点环。</li>
+          </ul>
+        </div>
+      </details>
+    </section>
+
+    <!-- ===== 面试 ===== -->
+    <section id="interview">
+      <div class="col">
+        <div class="eyebrow">面试可讲 · 取舍点</div>
+        <h2>这块前端能讲出什么「设计品味」</h2>
+        <p class="sub">不是「我用 React 写了个页面」，而是每个决定背后都有一句「为什么这样更好」。</p>
+      </div>
+      <div class="iv">
+        <div class="ivcard"><div class="q">为什么用 SSE 而不是轮询 / WebSocket？</div><h4>单向服务端推的最简解</h4><p>进度是<strong>后端被动产出、单向下推</strong>，不需要双工。SSE 一根长连接、浏览器原生、断线自动重连，比 WebSocket 轻，比轮询准且省。选型贴合数据流方向。</p></div>
+        <div class="ivcard"><div class="q">整站换皮为什么几乎不动 JSX？</div><h4>token 重映射 · 名字是接口</h4><p>颜色全走语义 CSS 变量，重构只改<strong>变量的值</strong>、不动类名与 DOM。换整套视觉语言 = 改一张变量表，而非全局搜替 + 逐组件回归。</p></div>
+        <div class="ivcard"><div class="q">暗色模式怎么不闪白？</div><h4>paint 前阻塞式内联脚本</h4><p><span class="k">&lt;head&gt;</span> 里同步落 <span class="k">data-theme</span>，先读 localStorage 再退回系统偏好；配 suppressHydrationWarning 压掉水合不一致。首帧就是对的主题。</p></div>
+        <div class="ivcard"><div class="q">需求画布为什么不持久化？</div><h4>让易变层无状态</h4><p>真相源在后端对话历史，前端只做<strong>无副作用覆盖投影</strong>。组件极简、可单测、丢了能重算——「持久 vs 实时」被干净地拆开。</p></div>
+        <div class="ivcard"><div class="q">18 种事件怎么不写成一团乱麻？</div><h4>单一 reducer 收口</h4><p>所有状态推进只在 <span class="k">handleMessage</span> 里发生，四站机 + 六卡 + 日志一处可查。加 closedRef 守卫挡住已关连接的迟到帧。</p></div>
+        <div class="ivcard"><div class="q">产品台和调试台为什么分两条路由？</div><h4>关注点 + 暴露面隔离</h4><p>工作台面向用户、走 RLS 内数据；可观测台跨租户、仅 DEV_MODE、信息密度高。两者共用 token 与 primitives，但布局与数据源各自独立。</p></div>
+      </div>
+    </section>
+
+    <!-- ===== 限制 ===== -->
+    <section id="limits">
+      <div class="col">
+        <div class="eyebrow">已知限制 · 刻意推后</div>
+        <h2>哪些没做，为什么可以先不做</h2>
+        <table class="limits">
+          <thead><tr><th>限制</th><th>影响</th><th>当前缓解 / 为何可推后</th></tr></thead>
+          <tbody>
+            <tr><td>page.tsx 12 组件未拆文件</td><td>单文件偏长，导航略累</td><td>纯 churn、零功能收益，主动推迟（见 STATE 遗留债）</td></tr>
+            <tr><td>SSE 重连状态未回填</td><td>断线期间的中间事件不自动补回</td><td>onerror 仅关连接 + 提示重提；终态可重查，影响有限</td></tr>
+            <tr><td>产出未做打字流</td><td>PRD/方案是整块到达非逐字流</td><td>事件粒度是「阶段完成」，非 token 级；streaming 待后端支持</td></tr>
+            <tr><td>web importer 缺 pnpm-lock</td><td>依赖锁定不完整</td><td>monorepo 层面待补</td></tr>
+          </tbody>
+        </table>
+        <p class="body" style="margin-top:1.6rem">更远的未来：<strong>SSE 断线重连 + 事件回填</strong>（从 lastEventId 补齐中间态）· <strong>token 级流式产出</strong>（PRD/代码逐字显影，需后端改事件粒度）· <strong>page.tsx 组件拆分</strong>（等真正带来复用/协作收益时再做）· <strong>可观测台与工作台的 primitives 进一步抽包</strong>。</p>
+        <div class="callout"><span class="l">视觉血缘</span>这块工作台的 claude-style 暖色（ivory <span class="k">#faf9f5</span> + clay coral <span class="k">#d97757</span> + 暖 sage/terracotta），正是你眼前这份复盘页整套图版视觉的来源——同一套调色板，从产品界面延续到文档。</div>
+      </div>
+    </section>
+
+    <div class="footnav">
+      <a href="overview.html" id="foot-overview">← 返回总览</a>
+      <span class="meta">Atelier · 前端工作台 · 四工位 rail / 6 卡 / SSE 投影 / claude-style 暖色</span>
+      <a href="#intro-top">回到顶部 ↑</a>
+    </div>
+
+   </div>
+  </main>
+</div>
+<div class="scrim" id="scrim"></div>
+
+<script>
+  (function () {
+    var root = document.documentElement, shell = document.getElementById('shell');
+    // theme
+    var tbtn = document.getElementById('themeToggle');
+    function apply(t){ root.setAttribute('data-theme', t); try{ localStorage.setItem('atelier-review-theme', t);}catch(e){} }
+    try{ var s = localStorage.getItem('atelier-review-theme'); if(s) apply(s); }catch(e){}
+    tbtn.addEventListener('click', function(){
+      var cur = root.getAttribute('data-theme');
+      if(!cur) cur = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark':'light';
+      apply(cur === 'dark' ? 'light':'dark');
+    });
+    // toc toggle
+    var tocBtn = document.getElementById('tocBtn'), scrim = document.getElementById('scrim');
+    function isMobile(){ return matchMedia('(max-width: 900px)').matches; }
+    tocBtn.addEventListener('click', function(){
+      if(isMobile()) shell.classList.toggle('tocopen');
+      else shell.classList.toggle('collapsed');
+    });
+    scrim.addEventListener('click', function(){ shell.classList.remove('tocopen'); });
+    // scrollspy
+    var links = Array.prototype.slice.call(document.querySelectorAll('#tocNav a'));
+    var map = {}; links.forEach(function(a){ map[a.getAttribute('href').slice(1)] = a; });
+    var secs = links.map(function(a){ return document.getElementById(a.getAttribute('href').slice(1)); }).filter(Boolean);
+    var obs = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(en.isIntersecting){
+          links.forEach(function(l){ l.classList.remove('active'); });
+          var a = map[en.target.id]; if(a) a.classList.add('active');
+        }
+      });
+    }, { rootMargin: '-45% 0px -50% 0px', threshold: 0 });
+    secs.forEach(function(s){ obs.observe(s); });
+    // close mobile toc on link click
+    links.forEach(function(a){ a.addEventListener('click', function(){ if(isMobile()) shell.classList.remove('tocopen'); }); });
+  })();
+</script>

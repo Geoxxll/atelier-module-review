@@ -1,0 +1,762 @@
+<title>LLM Gateway · Atelier 模块复盘</title>
+<style>
+  /* ========== Atelier 模块复盘 · 制图板视觉系统（含左侧目录） ==========
+     借项目 claude-style 暖色系（ivory / clay coral / sage / terracotta），
+     推向「工作室制图板」：细线框 · 图版编号 · 页边旁注 · 地图式图例 · 左侧可收缩目录。
+     字体走系统栈，避免 CSP 下 CDN 字体静默回退。 */
+
+  :root {
+    --ground:#faf9f5; --paper:#ffffff; --paper-warm:#f4f1ea; --paper-warm2:#efece3;
+    --ink:#2a2622; --ink-soft:#6b6459; --ink-faint:#9a9284;
+    --hairline:#e4dfd3; --hairline-bold:#d5cfc0;
+    --clay:#c15f3c; --clay-bg:#f6e7df;
+    --sage:#4f8560; --sage-bg:#e2ede4;
+    --slate:#4a6b8a; --slate-bg:#e2e8ee;
+    --ochre:#9c7734; --ochre-bg:#efe7d4;
+    --terra:#b04a2f; --terra-bg:#f4e0d9;
+    --plate-frame: var(--hairline-bold);
+    --shadow: 0 1px 2px rgba(42,38,34,.04), 0 8px 30px -18px rgba(42,38,34,.18);
+    --serif: 'Iowan Old Style','Palatino Linotype',Palatino,Georgia,'Songti SC','Noto Serif SC',serif;
+    --sans: -apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Noto Sans SC',sans-serif;
+    --mono: 'SF Mono',ui-monospace,'JetBrains Mono',Menlo,'Cascadia Code',monospace;
+    --measure: 68ch; --topbar-h: 52px; --toc-w: 250px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground:#0d0d0c; --paper:#171613; --paper-warm:#1e1c18; --paper-warm2:#242119;
+      --ink:#ece7dd; --ink-soft:#a49b8c; --ink-faint:#7a7264;
+      --hairline:#2c2924; --hairline-bold:#3a362f;
+      --clay:#e0906c; --clay-bg:#33241d; --sage:#7fb28e; --sage-bg:#1e2a22;
+      --slate:#7c9cbb; --slate-bg:#1c2530; --ochre:#cba85f; --ochre-bg:#2a2418;
+      --terra:#e08363; --terra-bg:#31201a;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 34px -18px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="light"] {
+    --ground:#faf9f5; --paper:#ffffff; --paper-warm:#f4f1ea; --paper-warm2:#efece3;
+    --ink:#2a2622; --ink-soft:#6b6459; --ink-faint:#9a9284;
+    --hairline:#e4dfd3; --hairline-bold:#d5cfc0;
+    --clay:#c15f3c; --clay-bg:#f6e7df; --sage:#4f8560; --sage-bg:#e2ede4;
+    --slate:#4a6b8a; --slate-bg:#e2e8ee; --ochre:#9c7734; --ochre-bg:#efe7d4;
+    --terra:#b04a2f; --terra-bg:#f4e0d9;
+  }
+  :root[data-theme="dark"] {
+    --ground:#0d0d0c; --paper:#171613; --paper-warm:#1e1c18; --paper-warm2:#242119;
+    --ink:#ece7dd; --ink-soft:#a49b8c; --ink-faint:#7a7264;
+    --hairline:#2c2924; --hairline-bold:#3a362f;
+    --clay:#e0906c; --clay-bg:#33241d; --sage:#7fb28e; --sage-bg:#1e2a22;
+    --slate:#7c9cbb; --slate-bg:#1c2530; --ochre:#cba85f; --ochre-bg:#2a2418;
+    --terra:#e08363; --terra-bg:#31201a;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body { margin: 0; background: var(--ground); color: var(--ink); font-family: var(--serif); font-size: 18px; line-height: 1.7; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+  h1,h2,h3,h4 { text-wrap: balance; }
+
+  /* ---- top bar ---- */
+  .topbar { position: sticky; top: 0; z-index: 60; height: var(--topbar-h); display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0 clamp(.8rem, 3vw, 1.6rem); background: color-mix(in srgb, var(--ground) 88%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--hairline); }
+  .topbar .lft { display: flex; align-items: center; gap: .8rem; min-width: 0; }
+  .brand { font-family: var(--mono); font-size: .72rem; letter-spacing: .13em; text-transform: uppercase; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .brand b { color: var(--clay); font-weight: 600; }
+  .topbar .right { display: flex; align-items: center; gap: .7rem; }
+  .icon-btn { font-family: var(--mono); font-size: .9rem; line-height: 1; color: var(--ink-soft); background: transparent; border: 1px solid var(--hairline-bold); border-radius: 4px; padding: .4rem .55rem; cursor: pointer; transition: border-color .2s, color .2s; }
+  .icon-btn:hover { border-color: var(--clay); color: var(--clay); }
+  .backlink { font-family: var(--mono); font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-soft); text-decoration: none; border-bottom: 1px solid var(--hairline-bold); padding-bottom: 2px; transition: color .2s, border-color .2s; white-space: nowrap; }
+  .backlink:hover { color: var(--clay); border-color: var(--clay); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--clay); outline-offset: 2px; }
+
+  /* ---- shell: toc + content ---- */
+  .shell { display: flex; align-items: flex-start; }
+  .toc { position: sticky; top: var(--topbar-h); flex: 0 0 var(--toc-w); width: var(--toc-w); height: calc(100vh - var(--topbar-h)); overflow-y: auto; border-right: 1px solid var(--hairline); padding: 1.4rem 1rem 2rem 1.2rem; background: var(--ground); transition: margin-left .25s ease; }
+  .toc .toc-h { font-family: var(--mono); font-size: .64rem; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-faint); margin: 0 0 .9rem; padding-left: .4rem; }
+  .toc nav { display: flex; flex-direction: column; gap: 1px; }
+  .toc a { display: flex; align-items: baseline; gap: .55rem; font-family: var(--sans); font-size: .86rem; color: var(--ink-soft); text-decoration: none; padding: .42rem .5rem; border-radius: 5px; border-left: 2px solid transparent; transition: background .15s, color .15s, border-color .15s; }
+  .toc a .num { font-family: var(--mono); font-size: .64rem; color: var(--ink-faint); flex: none; width: 1.2em; }
+  .toc a:hover { background: var(--paper-warm); color: var(--ink); }
+  .toc a.active { color: var(--clay); background: var(--clay-bg); border-left-color: var(--clay); font-weight: 600; }
+  .toc a.active .num { color: var(--clay); }
+  .toc .toc-foot { margin-top: 1.4rem; padding-top: 1rem; border-top: 1px solid var(--hairline); font-family: var(--mono); font-size: .62rem; color: var(--ink-faint); line-height: 1.6; letter-spacing: .04em; }
+
+  .shell.collapsed .toc { margin-left: calc(-1 * var(--toc-w) - 2px); }
+
+  .content { flex: 1 1 auto; min-width: 0; }
+  .cwrap { max-width: 1040px; margin: 0 auto; padding: 0 clamp(1rem, 4vw, 2.6rem); }
+  .col { max-width: var(--measure); }
+  .col.center { margin-left: auto; margin-right: auto; }
+
+  @media (max-width: 900px) {
+    .toc { position: fixed; z-index: 55; top: var(--topbar-h); left: 0; box-shadow: var(--shadow); margin-left: calc(-1 * var(--toc-w) - 4px); }
+    .shell.tocopen .toc { margin-left: 0; }
+    .shell.collapsed .toc { margin-left: calc(-1 * var(--toc-w) - 4px); }
+  }
+
+  /* ---- hero ---- */
+  .hero { padding: clamp(2.4rem, 6vw, 4.4rem) 0 2.2rem; border-bottom: 1px solid var(--hairline); }
+  .plate-no { font-family: var(--mono); font-size: .72rem; letter-spacing: .2em; text-transform: uppercase; color: var(--clay); }
+  .hero h1 { font-family: var(--serif); font-weight: 600; font-size: clamp(2.1rem, 5vw, 3.4rem); line-height: 1.08; letter-spacing: -.01em; margin: .5rem 0 0; }
+  .hero .lede { font-size: 1.25rem; color: var(--ink-soft); max-width: 42ch; margin: 1rem 0 0; text-wrap: pretty; }
+  .oneliner { margin-top: 1.6rem; padding: 1rem 1.2rem; border-left: 3px solid var(--clay); background: var(--clay-bg); border-radius: 0 4px 4px 0; font-size: 1.04rem; }
+  .oneliner b { color: var(--clay); font-weight: 600; }
+  .glance { display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); gap: 1px; margin-top: 2rem; background: var(--hairline); border: 1px solid var(--hairline); border-radius: 6px; overflow: hidden; }
+  .glance div { background: var(--paper); padding: 1rem 1.1rem; }
+  .glance dt { font-family: var(--mono); font-size: .62rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); }
+  .glance dd { margin: .35rem 0 0; font-size: 1rem; font-weight: 600; }
+  .glance dd small { display: block; font-weight: 400; font-size: .8rem; color: var(--ink-soft); font-family: var(--sans); }
+
+  /* ---- section ---- */
+  section { padding: clamp(2.4rem, 5.5vw, 4rem) 0; border-bottom: 1px solid var(--hairline); scroll-margin-top: calc(var(--topbar-h) + 12px); }
+  .eyebrow { font-family: var(--mono); font-size: .72rem; letter-spacing: .17em; text-transform: uppercase; color: var(--clay); }
+  h2 { font-family: var(--serif); font-weight: 600; font-size: clamp(1.55rem, 3.4vw, 2.2rem); line-height: 1.16; letter-spacing: -.01em; margin: .5rem 0 0; }
+  h2 + .sub { color: var(--ink-soft); font-size: 1.08rem; margin: .7rem 0 0; max-width: var(--measure); }
+  h3 { font-family: var(--serif); font-weight: 600; font-size: 1.26rem; margin: 2.2rem 0 .6rem; }
+  p { margin: 1rem 0; } p.body, li.body { max-width: var(--measure); }
+  strong { font-weight: 600; }
+  .k { font-family: var(--mono); font-size: .85em; background: var(--paper-warm); border: 1px solid var(--hairline); border-radius: 3px; padding: .05em .38em; color: var(--clay); }
+  ul.tight { padding-left: 1.2rem; } ul.tight li { margin: .4rem 0; max-width: var(--measure); }
+
+  /* ---- plate ---- */
+  .plate { margin: 2rem 0 .8rem; border: 1px solid var(--plate-frame); border-radius: 8px; background: var(--paper); box-shadow: var(--shadow); overflow: hidden; }
+  .plate-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding: .7rem 1.1rem; border-bottom: 1px solid var(--hairline); background: var(--paper-warm); }
+  .plate-head .t { font-family: var(--mono); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); }
+  .plate-head .t b { color: var(--clay); }
+  .plate-head .n { font-family: var(--mono); font-size: .66rem; color: var(--ink-faint); letter-spacing: .08em; }
+  .plate-body { padding: clamp(1.1rem, 3vw, 1.9rem); overflow-x: auto; }
+  .plate-cap { font-family: var(--sans); font-size: .89rem; color: var(--ink-soft); margin: .2rem 0 2rem; max-width: var(--measure); }
+  .plate-cap b { color: var(--ink); font-weight: 600; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: .5rem 1.2rem; padding: .9rem 1.1rem; border: 1px dashed var(--hairline-bold); border-radius: 6px; background: var(--paper); margin: 1.6rem 0; }
+  .legend span { display: inline-flex; align-items: center; gap: .5rem; font-family: var(--mono); font-size: .71rem; letter-spacing: .03em; color: var(--ink-soft); }
+  .swatch { width: 13px; height: 13px; border-radius: 3px; border: 1px solid rgba(0,0,0,.12); flex: none; }
+
+  /* ---- three-memory cards ---- */
+  .three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; min-width: 720px; }
+  .memcard { border: 1px solid var(--hairline-bold); border-radius: 8px; overflow: hidden; background: var(--paper); }
+  .memcard > header { padding: .9rem 1rem; border-bottom: 1px solid var(--hairline); }
+  .memcard[data-c="clay"] > header { background: var(--clay-bg); }
+  .memcard[data-c="sage"] > header { background: var(--sage-bg); }
+  .memcard[data-c="ochre"] > header { background: var(--ochre-bg); }
+  .memcard h4 { margin: 0; font-family: var(--serif); font-size: 1.14rem; font-weight: 600; }
+  .memcard h4 small { display: block; font-family: var(--mono); font-size: .64rem; letter-spacing: .12em; text-transform: uppercase; font-weight: 400; margin-top: .2rem; }
+  .memcard[data-c="clay"] h4 small { color: var(--clay); }
+  .memcard[data-c="sage"] h4 small { color: var(--sage); }
+  .memcard[data-c="ochre"] h4 small { color: var(--ochre); }
+  .memrow { padding: .65rem 1rem; border-bottom: 1px solid var(--hairline); font-size: .9rem; line-height: 1.5; }
+  .memrow:last-child { border-bottom: 0; }
+  .memrow dt { font-family: var(--mono); font-size: .58rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: .2rem; }
+  .memrow dd { margin: 0; }
+  .memrow.mono dd { font-family: var(--mono); font-size: .8rem; color: var(--ink-soft); }
+
+  /* ---- LAYERED architecture map ---- */
+  .layers { min-width: 660px; display: flex; flex-direction: column; gap: 0; }
+  .lyr { display: grid; grid-template-columns: 84px 1fr; gap: 1rem; align-items: stretch; }
+  .lyr .tag { font-family: var(--mono); font-size: .6rem; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-faint); writing-mode: vertical-rl; text-orientation: mixed; text-align: center; padding: .4rem 0; border-right: 1px solid var(--hairline); display: flex; align-items: center; justify-content: center; }
+  .lyr .band { padding: .3rem 0; }
+  .lyr2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .node { border: 1px solid var(--hairline-bold); border-radius: 7px; padding: .7rem .9rem; background: var(--paper); }
+  .node .lbl { font-family: var(--mono); font-size: .58rem; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-faint); display: block; margin-bottom: .3rem; }
+  .node .nm { font-family: var(--mono); font-weight: 600; font-size: .92rem; color: var(--ink); }
+  .node .ds { font-family: var(--sans); font-size: .8rem; color: var(--ink-soft); margin-top: .25rem; line-height: 1.45; }
+  .node.write { border-color: color-mix(in srgb, var(--sage) 45%, var(--hairline)); background: var(--sage-bg); }
+  .node.read { border-color: color-mix(in srgb, var(--slate) 45%, var(--hairline)); background: var(--slate-bg); }
+  .node.cap { border-color: color-mix(in srgb, var(--clay) 40%, var(--hairline)); }
+  .node.store { border-color: color-mix(in srgb, var(--ochre) 45%, var(--hairline)); background: var(--ochre-bg); }
+  .capgrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: .55rem; }
+  .capgrid .mini { border: 1px solid var(--hairline-bold); border-radius: 6px; padding: .5rem .55rem; background: var(--paper); text-align: center; }
+  .capgrid .mini b { font-family: var(--mono); font-size: .78rem; color: var(--clay); display: block; }
+  .capgrid .mini small { font-family: var(--sans); font-size: .68rem; color: var(--ink-soft); }
+  .flowbar { display: grid; grid-template-columns: 84px 1fr; gap: 1rem; }
+  .flowbar .arr { grid-column: 2; display: flex; justify-content: space-around; gap: 1rem; padding: .35rem 0; }
+  .flowbar .arr .a { font-family: var(--mono); font-size: .68rem; letter-spacing: .04em; display: inline-flex; align-items: center; gap: .4rem; padding: .1rem .5rem; border-radius: 20px; }
+  .arr .a.w { color: var(--sage); background: var(--sage-bg); }
+  .arr .a.r { color: var(--slate); background: var(--slate-bg); }
+  .arr .a .v { font-size: .82rem; }
+
+  /* ---- DB schema ---- */
+  .schema { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; min-width: 640px; }
+  .tbl { border: 1px solid var(--hairline-bold); border-radius: 8px; overflow: hidden; background: var(--paper); font-family: var(--mono); font-size: .8rem; }
+  .tbl > .th { padding: .6rem .9rem; background: var(--paper-warm); border-bottom: 1px solid var(--hairline); font-weight: 600; color: var(--ink); display: flex; justify-content: space-between; }
+  .tbl > .th .file { color: var(--ink-faint); font-size: .68rem; font-weight: 400; }
+  .tbl .fld { display: flex; justify-content: space-between; gap: 1rem; padding: .32rem .9rem; border-bottom: 1px solid var(--hairline); }
+  .tbl .fld:last-child { border-bottom: 0; }
+  .tbl .fld .ty { color: var(--ink-faint); font-size: .72rem; }
+  .tbl .fld.pk .nmn { color: var(--clay); font-weight: 600; }
+  .tbl .fld.idx { background: var(--paper-warm2); color: var(--ink-soft); font-size: .72rem; }
+  .tbl .fld.vec .ty { color: var(--sage); } .tbl .fld.cnt .ty { color: var(--clay); }
+
+  /* ---- flow (vertical stepped) ---- */
+  .flow { display: flex; flex-direction: column; gap: 0; min-width: 600px; }
+  .fstep { display: grid; grid-template-columns: 42px 1fr; gap: 1rem; }
+  .fstep .rail { display: flex; flex-direction: column; align-items: center; }
+  .fstep .dot { width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--clay); color: var(--clay); background: var(--paper); font-family: var(--mono); font-size: .76rem; font-weight: 600; display: grid; place-items: center; flex: none; }
+  .fstep .line { width: 1.5px; flex: 1; background: var(--hairline-bold); margin: 4px 0; min-height: 14px; }
+  .fstep:last-child .line { display: none; }
+  .fstep .card { border: 1px solid var(--hairline-bold); border-radius: 7px; background: var(--paper); padding: .8rem 1rem; margin-bottom: 1rem; }
+  .fstep .who { font-family: var(--mono); font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); }
+  .fstep .what { margin: .25rem 0 0; font-size: .96rem; } .fstep .what b { font-weight: 600; }
+  .fstep .note { margin: .5rem 0 0; font-family: var(--sans); font-size: .81rem; color: var(--ink-soft); border-left: 2px solid var(--hairline-bold); padding-left: .6rem; }
+  .fstep[data-c="sage"] .dot { border-color: var(--sage); color: var(--sage); }
+  .fstep[data-c="slate"] .dot { border-color: var(--slate); color: var(--slate); }
+  .fstep[data-c="ochre"] .dot { border-color: var(--ochre); color: var(--ochre); }
+  .flow-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+  .flow-title { font-family: var(--mono); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; margin: 0 0 1rem; padding-bottom: .5rem; border-bottom: 1px solid var(--hairline); }
+  .flow-title.write { color: var(--sage); } .flow-title.read { color: var(--slate); }
+
+  @media (max-width: 820px) {
+    .three, .flow, .fstep, .layers, .schema, .capgrid { min-width: 0; }
+    .flow-2 { grid-template-columns: 1fr; }
+    .three { grid-template-columns: 1fr; } .schema { grid-template-columns: 1fr; }
+    .capgrid { grid-template-columns: repeat(2, 1fr); }
+    .lyr2 { grid-template-columns: 1fr; }
+    .lyr .tag { writing-mode: horizontal-tb; transform: none; border-right: 0; border-bottom: 1px solid var(--hairline); }
+    .lyr { grid-template-columns: 1fr; } .flowbar { grid-template-columns: 1fr; } .flowbar .arr { grid-column: 1; }
+  }
+
+  /* ---- E2E ---- */
+  .e2e { border: 1px solid var(--plate-frame); border-left: 4px solid var(--clay); border-radius: 8px; background: var(--paper); box-shadow: var(--shadow); overflow: hidden; margin: 1.4rem 0; }
+  .e2e-head { padding: 1rem 1.3rem; border-bottom: 1px solid var(--hairline); background: var(--paper-warm); }
+  .e2e-head .tag { font-family: var(--mono); font-size: .66rem; letter-spacing: .12em; text-transform: uppercase; color: var(--clay); }
+  .e2e-head h3 { margin: .3rem 0 0; }
+  .e2e-body { padding: .4rem 1.3rem 1.3rem; }
+  .beat { display: grid; grid-template-columns: 90px 1fr; gap: 1.1rem; padding: 1.1rem 0; border-bottom: 1px dashed var(--hairline); }
+  .beat:last-child { border-bottom: 0; }
+  .beat .when { font-family: var(--mono); font-size: .64rem; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-faint); padding-top: .2rem; }
+  .beat .what { margin: 0; } .beat .what b { color: var(--clay); font-weight: 600; }
+  @media (max-width: 620px) { .beat { grid-template-columns: 1fr; gap: .5rem; } }
+  pre { background: var(--paper-warm); border: 1px solid var(--hairline); border-radius: 6px; padding: .8rem 1rem; overflow-x: auto; font-family: var(--mono); font-size: .8rem; line-height: 1.6; color: var(--ink); margin: .7rem 0 0; }
+  pre .c { color: var(--ink-faint); } pre .g { color: var(--sage); } pre .r { color: var(--terra); } pre .b { color: var(--slate); } pre .y { color: var(--ochre); }
+  .micro-note { font-family: var(--sans); font-size: .84rem; color: var(--ink-soft); border-left: 2px solid var(--sage); padding-left: .6rem; margin-top: .8rem; }
+  .micro-note.clay { border-left-color: var(--clay); }
+
+  /* ---- deep ---- */
+  .deep { border: 1px solid var(--hairline-bold); border-radius: 8px; background: var(--paper); margin: 1.2rem 0; overflow: hidden; }
+  .deep > summary { cursor: pointer; padding: 1rem 1.2rem; font-family: var(--serif); font-weight: 600; font-size: 1.1rem; list-style: none; display: flex; align-items: center; gap: .7rem; }
+  .deep > summary::-webkit-details-marker { display: none; }
+  .deep > summary::before { content: "⊕"; font-family: var(--mono); color: var(--clay); font-size: 1.05rem; }
+  .deep[open] > summary::before { content: "⊖"; }
+  .deep > summary::after { content: attr(data-tag); margin-left: auto; font-family: var(--mono); font-size: .6rem; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); font-weight: 400; text-align: right; }
+  .deep .inner { padding: 0 1.2rem 1.3rem; border-top: 1px solid var(--hairline); }
+  .deep .inner > :first-child { margin-top: 1rem; }
+
+  .cmp { width: 100%; border-collapse: collapse; margin: 1.2rem 0; font-size: .9rem; }
+  .cmp th, .cmp td { text-align: left; padding: .55rem .8rem; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+  .cmp thead th { font-family: var(--mono); font-size: .62rem; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-faint); font-weight: 600; }
+  .cmp tbody th { font-family: var(--sans); font-weight: 600; white-space: nowrap; }
+  .cmp td.a { color: var(--clay); } .cmp td.b { color: var(--slate); }
+  .cmp tr:last-child td, .cmp tr:last-child th { border-bottom: 0; }
+
+  /* ---- interview ---- */
+  .iv { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 1rem; margin-top: 1.4rem; }
+  .ivcard { border: 1px solid var(--hairline-bold); border-top: 3px solid var(--clay); border-radius: 6px; background: var(--paper); padding: 1.05rem 1.15rem; }
+  .ivcard .q { font-family: var(--sans); font-size: .69rem; letter-spacing: .05em; text-transform: uppercase; color: var(--clay); font-weight: 600; }
+  .ivcard h4 { margin: .4rem 0 .5rem; font-family: var(--serif); font-size: 1.06rem; font-weight: 600; }
+  .ivcard p { margin: 0; font-size: .9rem; color: var(--ink-soft); }
+
+  .limits { width: 100%; border-collapse: collapse; font-size: .9rem; margin-top: 1rem; }
+  .limits th, .limits td { text-align: left; padding: .6rem .8rem; border-bottom: 1px solid var(--hairline); }
+  .limits thead th { font-family: var(--mono); font-size: .6rem; letter-spacing: .09em; text-transform: uppercase; color: var(--ink-faint); }
+  .limits td:first-child { font-weight: 600; }
+
+  .callout { border: 1px solid var(--hairline-bold); border-left: 3px solid var(--sage); background: var(--sage-bg); border-radius: 0 6px 6px 0; padding: .9rem 1.1rem; margin: 1.4rem 0; font-size: .94rem; }
+  .callout.warn { border-left-color: var(--terra); background: var(--terra-bg); }
+  .callout .l { font-family: var(--mono); font-size: .62rem; letter-spacing: .09em; text-transform: uppercase; display: block; margin-bottom: .3rem; color: var(--sage); }
+  .callout.warn .l { color: var(--terra); }
+
+  .footnav { padding: 2.2rem 0 4rem; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; align-items: center; }
+  .footnav a { font-family: var(--mono); font-size: .76rem; letter-spacing: .05em; color: var(--ink-soft); text-decoration: none; border-bottom: 1px solid var(--hairline-bold); padding-bottom: 2px; }
+  .footnav a:hover { color: var(--clay); border-color: var(--clay); }
+  .footnav .meta { font-family: var(--mono); font-size: .66rem; color: var(--ink-faint); letter-spacing: .05em; }
+  .scrim { position: fixed; inset: var(--topbar-h) 0 0 0; background: rgba(0,0,0,.28); z-index: 54; opacity: 0; pointer-events: none; transition: opacity .2s; }
+  .shell.tocopen ~ .scrim { opacity: 1; pointer-events: auto; }
+  @media (min-width: 901px) { .scrim { display: none; } }
+</style>
+
+<div class="topbar">
+  <div class="lft">
+    <button class="icon-btn" id="tocBtn" aria-label="切换目录">☰</button>
+    <span class="brand">Atelier · 模块复盘 <b>／ LLM Gateway</b></span>
+  </div>
+  <div class="right">
+    <a class="backlink" href="overview.html" id="overview-link">← 总览</a>
+    <button class="icon-btn" id="themeToggle" aria-label="切换明暗主题">◐</button>
+  </div>
+</div>
+
+<div class="shell" id="shell">
+  <aside class="toc" id="toc">
+    <p class="toc-h">本页目录</p>
+    <nav id="tocNav">
+      <a href="#intro"><span class="num">00</span>为什么要一个网关</a>
+      <a href="#static"><span class="num">I</span>静态架构</a>
+      <a href="#dynamic"><span class="num">II</span>动态流程</a>
+      <a href="#e2e"><span class="num">→</span>端到端例子</a>
+      <a href="#deep"><span class="num">⊕</span>核心机制深挖</a>
+      <a href="#interview"><span class="num">Q</span>面试要点</a>
+      <a href="#limits"><span class="num">…</span>限制与未来</a>
+    </nav>
+    <div class="toc-foot">04 / LLM Gateway<br>唯一收费站 · 按 model 分流<br>OpenAI · Gemini · cost-meter</div>
+  </aside>
+
+  <main class="content">
+   <div class="cwrap">
+
+    <header class="hero" id="intro-top">
+      <div class="plate-no">Plate 04 — LLM Gateway</div>
+      <h1>LLM Gateway</h1>
+      <p class="lede">所有 Agent 与所有 LLM 之间的唯一收费站——对内是「一个 OpenAI 端点」，对外按 model 名分流到多个 provider。</p>
+      <div class="oneliner col">
+        一句话：Gateway 是一个 <b>OpenAI 兼容代理</b>。Agent 永远只当它是「一个 OpenAI 端点」，<b>凭证只在这里、绝不落到 Agent 手上</b>；换/加模型（OpenAI ↔ Gemini）只是网关内部<b>按 model 名前缀分流</b>的事，Agent 代码一行不动。provider 的协议怪癖（Gemini 两处坑）也在这一层<b>透明消解</b>。
+      </div>
+      <dl class="glance">
+        <div><dt>技术栈</dt><dd>TS + Hono<small>:3001 · 唯一 TS 后端</small></dd></div>
+        <div><dt>路由方式</dt><dd>按 model 名<small>纯函数前缀判定</small></dd></div>
+        <div><dt>provider</dt><dd>OpenAI · Gemini<small>共用一份透传逻辑</small></dd></div>
+        <div><dt>成本计量</dt><dd>cost-meter<small>每次调用落结构化日志</small></dd></div>
+        <div><dt>核心不变量</dt><dd>ADR-0009<small>Agent 不持任何凭证</small></dd></div>
+      </dl>
+    </header>
+
+    <!-- ===== 00 导言 ===== -->
+    <section id="intro">
+      <div class="col">
+        <div class="eyebrow">先建直觉</div>
+        <h2>为什么所有 LLM 调用都要挤过一个网关？</h2>
+        <p class="body">想象一座桥。桥这头是四个 Agent（PM / Architect / Coder / Reviewer），桥那头是几家不同的 LLM 供应商（OpenAI、Google）。你有两种修法：</p>
+        <ul class="tight">
+          <li class="body"><strong>放任每个 Agent 自己过河</strong>——各自揣着 API key、各自知道该打哪个供应商的地址、各自处理 Gemini 那些奇怪的协议怪癖。四个 Agent × 两家供应商 = 八份重复又易错的胶水代码，而且<strong>八个地方都握着密钥</strong>。</li>
+          <li class="body"><strong>只修一座<span class="k">收费站 + 翻译台</span></strong>——所有人先到网关，网关统一收票（鉴权）、看目的地分流（路由）、翻译供应商方言（补偿）、记账（计量），再放行。</li>
+        </ul>
+        <p class="body">Atelier 选第二种。这个<strong>唯一的收窄口（choke point）</strong>之所以值钱，是因为它把四件本该散落各处的横切关注点收敛成了一处：<strong>① 凭证</strong>只在网关（ADR-0009 不变量，Agent 永不持 key）；<strong>② 路由</strong>——换/加模型是网关内部的事，Agent 无感；<strong>③ 计量</strong>——token/成本/延迟在一处集中采集；<strong>④ 补偿</strong>——供应商协议怪癖收敛在这层，不污染上面的 LangChain / Agent 代码。</p>
+        <div class="callout">
+          <span class="l">贯穿全篇的设计不变量 · Agent 无感</span>
+          对 Agent 而言，Gateway 永远表现为「一个普通的 OpenAI 端点」（baseURL 指向 <span class="k">:3001/v1</span>）。<strong>它内部是一家还是三家供应商、Gemini 有没有坑，Agent 完全看不见也不该看见</strong>——这份「provider 无感」是本模块所有设计的出发点。
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== I 静态架构 ===== -->
+    <section id="static">
+      <div class="col">
+        <div class="eyebrow">图版 I · 静态架构</div>
+        <h2>一条请求路径，一张按名分流表</h2>
+        <p class="sub">先看请求从 Agent 流到供应商的四道关卡，再看「按 model 名选供应商」这张路由表——整个模块的骨架就这两样。</p>
+      </div>
+
+      <div class="legend">
+        <span><i class="swatch" style="background:var(--slate-bg);border-color:var(--slate)"></i>入站 · Agent 用 OpenAI SDK</span>
+        <span><i class="swatch" style="background:var(--clay-bg);border-color:var(--clay)"></i>网关内 · 路由 / 补偿 / 计量</span>
+        <span><i class="swatch" style="background:var(--ochre-bg);border-color:var(--ochre)"></i>上游 · provider OpenAI-compat 端点</span>
+      </div>
+
+      <div class="plate">
+        <div class="plate-head"><span class="t">图版 <b>I-a</b> · 请求路径 · 四道关卡</span><span class="n">STATIC · request path</span></div>
+        <div class="plate-body">
+          <div class="layers">
+            <!-- 入站层 -->
+            <div class="lyr">
+              <div class="tag">入站 · Agent</div>
+              <div class="band">
+                <div class="node read"><span class="lbl">调用方 · PM / Architect / Coder / Reviewer / eval</span><span class="nm">OpenAI SDK · baseURL = 127.0.0.1:3001/v1</span><span class="ds">POST /v1/chat/completions { model, messages, tools?, response_format?, stream? } + 自定义 Header（X-Atelier-Tenant/Workflow/Task/Trace）。Agent 不持 key、不知上游是谁。</span></div>
+              </div>
+            </div>
+            <div class="flowbar"><div class="arr"><span class="a r"><span class="v">▼</span> HTTP · OpenAI 格式</span></div></div>
+            <!-- 网关层 -->
+            <div class="lyr">
+              <div class="tag">网关 · Hono :3001</div>
+              <div class="band">
+                <div class="node cap" style="padding-bottom:.8rem">
+                  <span class="lbl">llm-gateway · 四道关卡（routes → adapters → pipeline）</span>
+                  <div class="capgrid" style="margin-top:.5rem">
+                    <div class="mini"><b>① zod 校验</b><small>只校验 model/messages/stream，其余 passthrough</small></div>
+                    <div class="mini"><b>② resolveAdapter</b><small>router.ts 按前缀选 provider</small></div>
+                    <div class="mini"><b>③ 补偿</b><small>仅 Gemini：签名回填 + RECITATION 重采样</small></div>
+                    <div class="mini"><b>④ completeRaw</b><small>整个 body 透传给上游 SDK</small></div>
+                    <div class="mini"><b>⑤ cost-meter</b><small>usage → 成本 / 延迟落日志</small></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="flowbar"><div class="arr"><span class="a w"><span class="v">▼</span> gemini adapter</span><span class="a r">openai adapter <span class="v">▼</span></span></div></div>
+            <!-- 上游层 -->
+            <div class="lyr">
+              <div class="tag">上游 · provider</div>
+              <div class="band">
+                <div class="lyr2">
+                  <div class="node store"><span class="lbl">provider · openai</span><span class="nm">api.openai.com</span><span class="ds">默认路径；含 eval 质量裁判 gpt-4o、embeddings（text-embedding-3-*）。</span></div>
+                  <div class="node store"><span class="lbl">provider · gemini（配了 key 才存在）</span><span class="nm">generativelanguage.googleapis.com/v1beta/openai/</span><span class="ds">Google 的 OpenAI-compat 端点；同一份透传逻辑，只是 baseURL + key 不同（+ 挂补偿层）。</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="plate-cap col center"><b>怎么读：</b>竖着是一条请求的生命周期（入站 → 网关四关 → 上游）。关键在中间那块：<b>校验只放行不拦截</b>（tools / response_format 全 passthrough，保证 LangChain 特性照常工作），<b>补偿只对 Gemini 实例挂载</b>，换回 OpenAI 这层零影响。两个 provider 共用同一份 <span class="k">OpenAIAdapter</span>——差异只是 baseURL + key。</p>
+
+      <div class="col">
+        <h3>路由表：只看 model 名的第一个词</h3>
+        <p class="body">整个「分流」逻辑塌缩成一个<strong>纯函数</strong>——不看别的，只看 model 名前缀。<span class="k">gemini-</span> 开头（或 <span class="k">models/gemini-</span>）走 Gemini，其余全走 OpenAI。这是刻意的极简：换生成模型只改一个入参，判官 <span class="k">gpt-4o</span> 天然不受影响（#58 模型轴去混淆）。</p>
+      </div>
+
+      <div class="plate">
+        <div class="plate-head"><span class="t">图版 <b>I-b</b> · 按 model 名分流表</span><span class="n">STATIC · routing table</span></div>
+        <div class="plate-body">
+          <table class="cmp">
+            <thead><tr><th>model 名前缀</th><th>provider</th><th>上游 baseURL</th><th>典型用途</th></tr></thead>
+            <tbody>
+              <tr><th><span class="k">gemini-*</span> / <span class="k">models/gemini-*</span></th><td class="a">gemini</td><td>generativelanguage.googleapis.com/v1beta/openai/</td><td>α 评测生成臂（gemini-3.5-flash 等）</td></tr>
+              <tr><th>其它一切（含 <span class="k">gpt-4o</span>）</th><td class="b">openai</td><td>api.openai.com（SDK 默认）</td><td>生产链路 + eval 质量裁判 gpt-4o</td></tr>
+              <tr><th><span class="k">text-embedding-3-*</span></th><td class="b">openai</td><td>api.openai.com（<em>不参与分流</em>）</td><td>记忆系统 embed，恒走 OpenAI</td></tr>
+            </tbody>
+          </table>
+          <div class="callout warn"><span class="l">配错早爆 · 不静默</span>点 <span class="k">gemini-*</span> 却没配 <span class="k">GEMINI_API_KEY</span> → chat 路由直接返回 <span class="k">400 model_routing_error</span>，<strong>绝不静默打到 OpenAI</strong>。宁可当场报错，也不让「本想跑 Gemini 却偷偷跑了 OpenAI」污染一整轮评测读数。</div>
+        </div>
+      </div>
+      <p class="plate-cap col center"><b>为什么是纯函数 + adapter 表：</b>把「选哪个上游」收敛成一个无副作用的 <span class="k">providerForModel(model)</span> + 一张 <span class="k">buildAdapterRouter</span> 装配的表——路由逻辑可单测，加 provider ≈ 加一条前缀判定 + 一个 <span class="k">new OpenAIAdapter(key, { baseURL })</span>。这是「换 provider = 换 baseURL + key」这句话的物理落点。</p>
+
+      <div class="col"><h3>三种关注点，谁归谁管</h3>
+        <p class="body">再把网关内部按「关注点」拆一遍——每一件横切的事都有唯一归属的文件，改动不外溢：</p>
+      </div>
+      <div class="plate">
+        <div class="plate-head"><span class="t">图版 <b>I-c</b> · 关注点 → 文件归属</span><span class="n">STATIC · module map</span></div>
+        <div class="plate-body">
+          <div class="three">
+            <div class="memcard" data-c="sage">
+              <header><h4>路由 / 透传<small>Routing</small></h4></header>
+              <dl>
+                <div class="memrow mono"><dt>入口</dt><dd>routes/chat.ts</dd></div>
+                <div class="memrow"><dt>做什么</dt><dd>zod 最小校验 + passthrough，按 model 解析 adapter，整个 body 透传</dd></div>
+                <div class="memrow mono"><dt>分流</dt><dd>adapters/router.ts</dd></div>
+                <div class="memrow"><dt>红线</dt><dd>不拦截任何 OpenAI 特性（tools / response_format）</dd></div>
+              </dl>
+            </div>
+            <div class="memcard" data-c="clay">
+              <header><h4>provider 补偿<small>Adapter</small></h4></header>
+              <dl>
+                <div class="memrow mono"><dt>透传</dt><dd>adapters/openai.ts</dd></div>
+                <div class="memrow"><dt>做什么</dt><dd>completeRaw / streamRaw / embedRaw + 定价表 PRICING</dd></div>
+                <div class="memrow mono"><dt>Gemini 坑</dt><dd>adapters/gemini-signatures.ts</dd></div>
+                <div class="memrow"><dt>红线</dt><dd>怪癖只在 adapter 层消解，Agent 无感</dd></div>
+              </dl>
+            </div>
+            <div class="memcard" data-c="ochre">
+              <header><h4>计量 / 观测<small>Pipeline</small></h4></header>
+              <dl>
+                <div class="memrow mono"><dt>入口</dt><dd>pipeline/cost-meter.ts</dd></div>
+                <div class="memrow"><dt>做什么</dt><dd>usage → costUsd + provider/model/tenant/延迟落结构化日志</dd></div>
+                <div class="memrow mono"><dt>事件名</dt><dd>llm_call_completed</dd></div>
+                <div class="memrow"><dt>红线</dt><dd>计量元数据走 Header，不污染 OpenAI 请求体</dd></div>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="plate-cap col center"><b>一眼看穿的边界：</b>路由（<span class="k">chat.ts</span>/<span class="k">router.ts</span>）只管「往哪送」、补偿（<span class="k">openai.ts</span>/<span class="k">gemini-signatures.ts</span>）只管「怎么翻译方言」、计量（<span class="k">cost-meter.ts</span>）只管「记多少账」。每类关注点单一归属——所以加一个 provider、改一次定价、修一个 Gemini 坑，改动都不外溢。</p>
+    </section>
+
+    <!-- ===== II 动态流程 ===== -->
+    <section id="dynamic">
+      <div class="col">
+        <div class="eyebrow">图版 II · 动态流程</div>
+        <h2>一次调用怎么走完；Gemini 多轮怎么被「悄悄修好」</h2>
+        <p class="sub">左边是一条普通 chat 请求的完整生命周期（含路由决策与计量收尾）；右边是 Gemini thinking 模型多轮工具调用时，网关如何在续轮偷偷把 thought_signature 补回去。</p>
+      </div>
+
+      <div class="plate">
+        <div class="plate-head"><span class="t">图版 <b>II-a</b> · chat 请求生命周期（非流式）</span><span class="n">DYNAMIC · request lifecycle</span></div>
+        <div class="plate-body">
+          <div class="flow">
+            <div class="fstep" data-c="slate"><div class="rail"><div class="dot">1</div><div class="line"></div></div>
+              <div class="card"><div class="who">Agent → POST /v1/chat/completions</div><p class="what">Agent 用 OpenAI SDK 发请求，body 里带 <span class="k">model / messages / tools? / response_format? / stream?</span>，计量元数据挂在 <b>自定义 Header</b> 上。</p></div></div>
+            <div class="fstep"><div class="rail"><div class="dot">2</div><div class="line"></div></div>
+              <div class="card"><div class="who">chat.ts · zod minimalSchema</div><p class="what">只校验 <b>model / messages / stream</b> 三个必需字段，其余一律 <span class="k">passthrough()</span> 原样保留。</p><p class="note">为什么最小校验：拦多了会误伤 LangChain 的 with_structured_output / JSON mode——网关是透明代理，不该懂 OpenAI 的全部特性。</p></div></div>
+            <div class="fstep" data-c="clay"><div class="rail"><div class="dot">3</div><div class="line"></div></div>
+              <div class="card"><div class="who">resolveAdapter(model) · router.ts</div><p class="what"><span class="k">providerForModel</span> 按前缀选 provider。若点 gemini-* 但没配 key → 抛错，chat 路由捕获成 <span class="k">400 model_routing_error</span>。</p></div></div>
+            <div class="fstep" data-c="clay"><div class="rail"><div class="dot">4</div><div class="line"></div></div>
+              <div class="card"><div class="who">adapter.completeRaw(body) · openai.ts</div><p class="what">去掉 stream 字段，<b>整个 body 透传</b>给上游 <span class="k">client.chat.completions.create</span>。<b>仅 Gemini 实例</b>在此前后做 inject / RECITATION 重采样 / harvest（见 II-b）。</p></div></div>
+            <div class="fstep" data-c="ochre"><div class="rail"><div class="dot">5</div><div class="line"></div></div>
+              <div class="card"><div class="who">extractUsage → cost-meter.record</div><p class="what">从响应 <span class="k">usage</span> 读 token，命中 <span class="k">prompt_tokens_details.cached_tokens</span> 走 cachedInput 价，算出 <span class="k">costUsd</span>，连同 provider/model/tenant/延迟落 <span class="k">llm_call_completed</span> 日志。</p></div></div>
+            <div class="fstep"><div class="rail"><div class="dot">6</div></div>
+              <div class="card"><div class="who">c.json(result.raw) → Agent</div><p class="what">把上游 <b>OpenAI 原始响应结构</b>原样返回。OpenAI SDK / LangChain 直接解析，全程感知不到中间发生过路由、补偿、计量。</p></div></div>
+          </div>
+        </div>
+      </div>
+      <p class="plate-cap col center"><b>关键节奏：</b>校验 →（路由）→ 透传 → 计量 → 原样回传。<b>透传是主轴</b>，路由/补偿/计量都是「贴在透传两侧」的横切逻辑——正因为它们不改 body 的语义，Agent 才对整条链路无感。流式模式同理，但 usage 记 0（OpenAI 流式 chunk 不带 usage，属已知债）。</p>
+
+      <div class="plate">
+        <div class="plate-head"><span class="t">图版 <b>II-b</b> · Gemini thought_signature 多轮修复</span><span class="n">DYNAMIC · signature repair</span></div>
+        <div class="plate-body">
+          <div class="flow-2">
+            <div>
+              <p class="flow-title read">第 1 轮 · harvest（采集签名）</p>
+              <div class="flow">
+                <div class="fstep" data-c="slate"><div class="rail"><div class="dot">A</div><div class="line"></div></div>
+                  <div class="card"><div class="who">Gemini 返回带签名的 tool_call</div><p class="what">thinking 模型每个 tool_call 挂一个不透明的 <span class="k">extra_content.google.thought_signature</span>。</p></div></div>
+                <div class="fstep" data-c="slate"><div class="rail"><div class="dot">B</div><div class="line"></div></div>
+                  <div class="card"><div class="who">signatureCache.harvest(resp)</div><p class="what">网关按 <span class="k">tool_call.id</span> 把 extra_content 缓存进 Map（FIFO 上限 5000）。</p></div></div>
+                <div class="fstep" data-c="slate"><div class="rail"><div class="dot">C</div></div>
+                  <div class="card"><div class="who">原样回传给 Agent</div><p class="what">但 <b>langchain_openai 解析成 AIMessage 时丢弃 extra_content</b>——签名从此在 Agent 侧消失。</p></div></div>
+              </div>
+            </div>
+            <div>
+              <p class="flow-title write">第 2 轮 · inject（回填签名）</p>
+              <div class="flow">
+                <div class="fstep" data-c="clay"><div class="rail"><div class="dot">A</div><div class="line"></div></div>
+                  <div class="card"><div class="who">Agent 带历史续轮</div><p class="what">assistant 的 tool_call 里 <b>缺 extra_content</b>（被 LangChain 丢了）。若原样发出去 → Gemini <span class="k">400 missing thought_signature</span>。</p></div></div>
+                <div class="fstep" data-c="clay"><div class="rail"><div class="dot">B</div><div class="line"></div></div>
+                  <div class="card"><div class="who">signatureCache.inject(body)</div><p class="what">遍历出站 messages，assistant 的 tool_call <b>缺签名且 id 命中缓存</b> → 就地回填 extra_content，返回回填条数落日志。</p></div></div>
+                <div class="fstep" data-c="clay"><div class="rail"><div class="dot">C</div></div>
+                  <div class="card"><div class="who">带齐签名发上游</div><p class="what">Gemini 拿到完整签名，续轮正常。<b>Agent 全程无感</b>；换回 OpenAI 这层不挂载、零影响。</p></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="plate-cap col center"><b>为什么修复点必须在网关：</b>网关是<b>唯一同时看得见「Gemini 原始响应（含签名）」和「后续出站请求」</b>的层——Agent 侧签名早被 LangChain 吃掉了，根本没机会补。把这个 provider 专属怪癖收敛在 adapter 层，是「Agent 对 provider 无感」这个不变量的直接体现。</p>
+    </section>
+
+    <!-- ===== E2E ===== -->
+    <section id="e2e">
+      <div class="col">
+        <div class="eyebrow">端到端 · 走一遍</div>
+        <h2>一次 <span class="k">gemini-3.5-flash</span> 带工具的评测调用，全程会遇到什么</h2>
+        <p class="sub">把路由 → Gemini 端点 → 续轮回填签名 → RECITATION 升温重采样 → 返回，串成一个真实故事。这一条把本模块最有料的两处坑都踩了个遍。</p>
+      </div>
+      <div class="e2e">
+        <div class="e2e-head"><span class="tag">场景 · α 评测生成臂走 Gemini、判官仍 gpt-4o</span><h3>eval 让 gemini-3.5-flash 用 ReAct 工具写一段 LRU cache，判官用 gpt-4o 打分</h3></div>
+        <div class="e2e-body">
+          <div class="beat"><div class="when">路由</div><div><p class="what">eval 用 OpenAI SDK 打 <span class="k">:3001/v1</span>，body 里 <span class="k">model="gemini-3.5-flash"</span>、带 <b>tools</b>。网关 <span class="k">providerForModel</span> 一看前缀 → gemini adapter。同一轮里判官的 <b>gpt-4o</b> 请求前缀不匹配 → 走 openai adapter，两臂在一个网关内共存。</p>
+            <pre><span class="c"># router.ts providerForModel</span>
+"gemini-3.5-flash".startsWith("gemini-")  <span class="c"># → true → provider=gemini</span>
+"gpt-4o".startsWith("gemini-")            <span class="c"># → false → provider=openai（判官固定不动）</span></pre></div></div>
+
+          <div class="beat"><div class="when">第 1 轮</div><div><p class="what">gemini adapter 透传 body 到 Google OpenAI-compat 端点。Gemini 返回一个 tool_call，<b>带 thought_signature</b>。网关 <span class="k">harvest</span> 按 id 缓存签名后原样回传——但 LangChain 解析成 AIMessage 时把 extra_content 丢了。</p>
+            <pre><span class="c"># completeRaw 收尾</span>
+this.signatureCache?.harvest(resp)
+<span class="c"># cache: { "call_abc123": { google: { thought_signature: "…" } } }</span></pre></div></div>
+
+          <div class="beat"><div class="when">第 2 轮 · 修签名</div><div><p class="what">ReAct 把 tool 结果拼回历史续轮。出站 assistant 的 tool_call <b>没有签名</b>（被 LangChain 吃了）。网关 <span class="k">inject</span> 一看 id 命中缓存 → 就地回填，Gemini 才不会 400。</p>
+            <pre><span class="c"># completeRaw 开头</span>
+const injected = this.signatureCache?.inject(params) <span class="c"># → 1</span>
+logger.info(<span class="g">"gemini_signature_injected"</span>, { count: <span class="y">1</span> })
+<span class="c"># 缺这一步：400 "Function call is missing a thought_signature"（根 ERROR #14）</span></pre></div></div>
+
+          <div class="beat"><div class="when">RECITATION</div><div><p class="what">Gemini 生成到「教科书式 LRU cache」时撞了 <b>RECITATION</b> content-filter：返回 <span class="k">200</span> 但 content/tool_calls 空、<span class="k">finish_reason=content_filter</span>，<b>令 structured-output 解析崩</b>。网关检测到 → <b>有限次升温重采样</b>绕过。</p>
+            <pre><span class="c"># RECITATION 在 temperature&gt;0 下非确定 → 升温重试（≤2 次）</span>
+for (attempt = 1; attempt &lt;= 2; attempt++) {
+  if (!finish_reason.includes(<span class="r">"content_filter"</span>)) break
+  logger.warn(<span class="g">"gemini_content_filter_retry"</span>, { attempt })
+  resp = create({ ...params, temperature: <span class="y">0.6 + attempt*0.2</span> })  <span class="c"># 0.8 → 1.0</span>
+}
+<span class="c"># 非 gemini 实例 maxFilterRetries=0，行为不变（根 ERROR #15）</span></pre></div></div>
+
+          <div class="beat"><div class="when">计量 + 返回</div><div><p class="what">拿到有效响应，<span class="k">extractUsage</span> 读 token 算成本，落 <span class="k">llm_call_completed</span> 日志（带 provider=gemini / model / tenant / 延迟）。原始响应原样返回给 eval。判官那条 gpt-4o 走的是干净的 OpenAI 路径，一处补偿都不碰。</p>
+            <p class="micro-note">整条链路里，eval 代码只知道「我调了个 OpenAI 端点、换了个 model 名」——签名回填、RECITATION 重采样、成本计量全在网关内悄悄发生。这就是「Agent 对 provider 无感」的完整兑现。</p></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 深挖 ===== -->
+    <section id="deep">
+      <div class="col">
+        <div class="eyebrow">核心机制 · 钻到实现级</div>
+        <h2>五个撑起整个网关的机制</h2>
+        <p class="sub">展开看代码级细节。这几处也是面试里最容易被追问「你具体怎么做的」的地方。</p>
+      </div>
+
+      <details class="deep" open data-tag="router.ts">
+        <summary>① 按 model 名路由：一个纯函数 + 一张 adapter 表</summary>
+        <div class="inner">
+          <p class="body">「选哪个上游」被刻意收敛成<strong>一个无副作用的纯函数</strong>——只看 model 名前缀，不碰任何 I/O，因此可单测、可扩 provider：</p>
+          <pre><span class="c">// 纯函数：只看 model 名决定 provider</span>
+export function providerForModel(model: string): Provider {
+  return model.startsWith(<span class="g">'gemini-'</span>) || model.startsWith(<span class="g">'models/gemini-'</span>)
+    ? <span class="b">'gemini'</span> : <span class="b">'openai'</span>
+}</pre>
+          <p class="body">装配则由 <span class="k">buildAdapterRouter</span> 按「手头有哪些 key」建表——openai 必有，gemini <strong>仅在配了 key 时存在</strong>；两个都是同一个 <span class="k">OpenAIAdapter</span>，差异只是 baseURL + key（+ Gemini 挂补偿）：</p>
+          <pre>const openai = new OpenAIAdapter(openaiApiKey)
+const gemini = geminiApiKey
+  ? new OpenAIAdapter(geminiApiKey, {
+      baseURL: GEMINI_OPENAI_BASE_URL,
+      geminiSignatureFix: <span class="y">true</span>,   <span class="c">// 只有 Gemini 实例挂补偿</span>
+    })
+  : undefined
+
+return (model) =&gt; {
+  const provider = providerForModel(model)
+  if (provider === <span class="b">'gemini'</span> &amp;&amp; !gemini)
+    <span class="r">throw new Error</span>(<span class="g">`需要 Gemini 但 GEMINI_API_KEY 未配置`</span>)  <span class="c">// 配错早爆</span>
+  return provider === <span class="b">'gemini'</span> ? { adapter: gemini, provider } : { adapter: openai, provider }
+}</pre>
+          <p class="body"><strong>加一个 provider ≈ 加一条前缀判定 + 一行 <span class="k">new OpenAIAdapter(key, { baseURL })</span></strong>——前提是它有 OpenAI-compat 端点。这就是「换 provider = 换 baseURL + key」这句口号的物理落点。</p>
+        </div>
+      </details>
+
+      <details class="deep" data-tag="gemini-signatures.ts · 根 ERROR #14">
+        <summary>② thought_signature 回填：跨 LangChain 序列化把签名找回来</summary>
+        <div class="inner">
+          <p class="body">Gemini thinking 模型每个 tool_call 带不透明 <span class="k">extra_content.google.thought_signature</span>，多轮续轮<strong>必须原样回传</strong>，否则上游 400。麻烦在于：<span class="k">langchain_openai</span> 把响应解析成 AIMessage 时只留标准字段（id/name/args），<strong>extra_content 被丢弃</strong>。网关是唯一同时看得见「原始响应」与「出站请求」的层，于是做一层最小记忆——按 id 缓存、按 id 回填：</p>
+          <pre><span class="c">// harvest：从 Gemini 响应按 tool_call.id 缓存 extra_content</span>
+harvest(resp) {
+  for (const tc of resp.choices[].message.tool_calls)
+    if (tc.id &amp;&amp; tc.extra_content != null) this.remember(tc.id, tc.extra_content)
+}
+<span class="c">// inject：出站 assistant 的 tool_call 缺签名但 id 命中 → 就地回填</span>
+inject(body) {
+  for (const m of body.messages) if (m.role === <span class="b">'assistant'</span>)
+    for (const tc of m.tool_calls)
+      if (tc.id &amp;&amp; tc.extra_content == null &amp;&amp; this.store.has(tc.id))
+        tc.extra_content = this.store.get(tc.id)   <span class="c">// ← 补回来</span>
+}</pre>
+          <ul class="tight">
+            <li class="body"><strong>按 id 键</strong>：Gemini 生成的随机短 id，跨对话碰撞概率极低；真碰撞最坏是该次 400 被上层重试，不会静默错答。</li>
+            <li class="body"><strong>FIFO 上限 5000</strong>：防内存泄漏；超限删最旧。缓存是「无状态服务外的最小记忆」，不落库。</li>
+            <li class="body"><strong>调试教训</strong>：上游 OpenAI-compat 的 400 常被 SDK 吞成「no body」，真错误要直连端点带 <span class="k">Authorization: Bearer</span> 才看得到。</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="deep" data-tag="openai.ts · 根 ERROR #15">
+        <summary>③ RECITATION 升温重采样：绕开「教科书码」过滤器</summary>
+        <div class="inner">
+          <p class="body">Gemini 的 <strong>RECITATION</strong> content-filter 会拦「逐字复述训练数据」的输出——写规范算法（LRU cache、罗马数字、经典 LeetCode）高度撞库即触发。表现是返回 <span class="k">200</span> 但 content/tool_calls 空、<span class="k">finish_reason=content_filter</span>、completion_tokens=0，让 LangChain structured-output 当场崩。它独立于可配置的 HarmCategory，基本关不掉。</p>
+          <pre>const maxFilterRetries = this.signatureCache ? <span class="y">2</span> : <span class="y">0</span>   <span class="c">// 仅 Gemini 实例 &gt; 0</span>
+let resp = await create(params)
+for (let attempt = 1; attempt &lt;= maxFilterRetries; attempt++) {
+  const fr = resp.choices?.[0]?.finish_reason
+  if (!fr || !fr.includes(<span class="r">'content_filter'</span>)) break          <span class="c">// 没被过滤 → 收工</span>
+  logger.warn(<span class="g">'gemini_content_filter_retry'</span>, { attempt, model })
+  resp = await create({ ...params, temperature: <span class="y">0.6 + attempt * 0.2</span> })  <span class="c">// 升温重采样</span>
+}</pre>
+          <ul class="tight">
+            <li class="body"><strong>为什么升温有效</strong>：RECITATION 在 <span class="k">temperature&gt;0</span> 下非确定——换个采样温度就可能不撞库。故只对被过滤的少数次升温（0.8 → 1.0，≤2 次），落日志便于量化这个混淆变量。</li>
+            <li class="body"><strong>非 Gemini 零影响</strong>：openai 实例 <span class="k">maxFilterRetries=0</span>，循环一次不进，行为与从前完全一致。</li>
+            <li class="body"><strong>评测启示</strong>：provider 的安全/合规过滤会成为跨模型评测的混淆变量（Gemini 拒写教科书码 ≠ 它不会写）——harness 侧还得对不可恢复失败「丢弃而非记 0」。</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="deep" data-tag="cost-meter.ts · openai.ts PRICING">
+        <summary>④ cost-meter：每次调用后把 token 折成钱</summary>
+        <div class="inner">
+          <p class="body">计量在透传收尾处发生：<span class="k">extractUsage</span> 从响应 usage 读 token，命中缓存 token 走 cachedInput 价，按定价表折算成 <span class="k">costUsd</span>，再由 <span class="k">CostMeter.record</span> 落一条结构化日志：</p>
+          <pre>function calcCost(model, tokensIn, tokensOut, cachedTokens) {
+  const price = PRICING[model] ?? { input: 5.0, output: 15.0, cachedInput: 2.5 }  <span class="c">// 未知 model 兜底价</span>
+  return ((tokensIn - cachedTokens) * price.input
+        + cachedTokens * price.cachedInput
+        + tokensOut * price.output) / 1_000_000                <span class="c">// USD / 1M token</span>
+}
+<span class="c">// CostMeter.record → 结构化日志（Phase 0：仅日志，便于 Loki 聚合）</span>
+logger.info(<span class="g">'llm_call_completed'</span>, { provider, model, tenantId, workflowId,
+  taskKind, tokensIn, tokensOut, cachedTokens, costUsd, latencyMs, cacheLayer })</pre>
+          <ul class="tight">
+            <li class="body"><strong>元数据走 Header 不进 body</strong>：tenant/workflow/taskKind/trace 从 <span class="k">X-Atelier-*</span> 自定义 Header 读，绝不污染 OpenAI 格式的请求体。</li>
+            <li class="body"><strong>Phase 0 = 只写日志</strong>：接口已定（<span class="k">CallRecord</span>），Phase 1 换成写 Postgres <span class="k">llm_calls</span> 表不影响调用方——先可观测、后可持久化。</li>
+            <li class="body"><strong>已知债</strong>：流式分支不计 usage（OpenAI 流式 chunk 不带 usage，tokensIn/Out/cost 记 0）；定价表手工维护，需定期对齐官方价。</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="deep" data-tag="ADR-0009 · 不变量">
+        <summary>⑤ 为什么是「网关不变量」＋ OpenAI-compat 表面</summary>
+        <div class="inner">
+          <p class="body">这不是「顺手加个代理」，而是一条<strong>被 ADR-0009 钉死的架构不变量</strong>：<em>所有 LLM 调用必须经网关，Agent 代码不直接持有 provider 凭证</em>。它换来四件事一次到位：</p>
+          <table class="cmp">
+            <thead><tr><th>不做网关（各自直连）</th><th>做网关（唯一收窄口）</th></tr></thead>
+            <tbody>
+              <tr><th>凭证</th><td class="a">散落在每个 Agent 进程</td><td class="b">只在网关一处</td></tr>
+              <tr><th>换/加 provider</th><td class="a">改所有 Agent</td><td class="b">改网关内部，Agent 无感</td></tr>
+              <tr><th>成本可观测</th><td class="a">各测各的、口径不一</td><td class="b">一处集中采集，统一口径</td></tr>
+              <tr><th>provider 怪癖</th><td class="a">污染每个 Agent / LangChain</td><td class="b">收敛在 adapter 层透明消解</td></tr>
+            </tbody>
+          </table>
+          <p class="body">而「表面为什么选 <strong>OpenAI-compat</strong>」也是精算过的：OpenAI 的 chat/completions 协议已是事实标准，各 provider（含 Google）都提供 OpenAI-compat 端点，LangChain / OpenAI SDK 开箱即用。<strong>选它做统一表面 = 白拿整个生态的 tools / response_format / 结构化输出</strong>——网关只做透明代理就能让上层所有特性照常工作。这也解释了为什么后端唯独这一个服务保留 TypeScript（ADR-0009：已稳定、HTTP 边界隔离，不值得重写）。</p>
+        </div>
+      </details>
+    </section>
+
+    <!-- ===== 面试 ===== -->
+    <section id="interview">
+      <div class="col">
+        <div class="eyebrow">面试可讲 · 取舍点</div>
+        <h2>这个模块能讲出什么「设计品味」</h2>
+        <p class="sub">不是「我写了个代理」，而是每一处收敛/隔离背后都有一句「为什么必须这样」。</p>
+      </div>
+      <div class="iv">
+        <div class="ivcard"><div class="q">为什么所有调用都挤过一个网关？</div><h4>横切关注点收敛</h4><p>凭证、路由、计量、provider 补偿四件横切的事，散在每个 Agent 就是 N×M 份易错胶水且 N 处握密钥。<strong>一个收窄口把它们一次收敛</strong>，是 ADR-0009 的核心。</p></div>
+        <div class="ivcard"><div class="q">路由为什么只看 model 名？</div><h4>唯一自由变量</h4><p>α 评测要「生成臂换 Gemini、判官仍 gpt-4o」在一个网关共存——按 model 名分流让<strong>换生成模型只改一个入参</strong>，判官天然不动（#58 模型轴去混淆）。</p></div>
+        <div class="ivcard"><div class="q">配错 provider 该报错还是兜底？</div><h4>宁可早爆不静默</h4><p>点 gemini-* 没配 key → 直接 400，<strong>绝不静默打到 OpenAI</strong>。静默降级会让「本想跑 Gemini 却偷跑 OpenAI」污染一整轮评测读数，比崩掉更坏。</p></div>
+        <div class="ivcard"><div class="q">Gemini 的坑为什么修在网关？</div><h4>唯一能看见的层</h4><p>签名被 LangChain 吃掉后 Agent 侧无从补——<strong>网关是唯一同时看见「原始响应」和「出站请求」</strong>的层。怪癖收敛在 adapter，Agent 保持 provider 无感。</p></div>
+        <div class="ivcard"><div class="q">透传代理为什么只做最小校验？</div><h4>不拦截即不误伤</h4><p>多校验一个字段就可能拦掉 tools / response_format，让 LangChain 结构化输出失灵。<strong>passthrough 一切非必需字段</strong>——白拿整个 OpenAI 生态。</p></div>
+        <div class="ivcard"><div class="q">计量为什么先只写日志？</div><h4>接口先行 · 实现后置</h4><p>CallRecord 接口已定，Phase 0 落结构化日志即可 Loki 聚合，Phase 1 换 Postgres 表<strong>不影响调用方</strong>。先可观测、后可持久化，不过早工程化。</p></div>
+      </div>
+    </section>
+
+    <!-- ===== 限制 ===== -->
+    <section id="limits">
+      <div class="col">
+        <div class="eyebrow">已知限制 · 刻意推后</div>
+        <h2>哪些没做，为什么可以先不做</h2>
+        <table class="limits">
+          <thead><tr><th>限制</th><th>影响</th><th>当前缓解 / 计划</th></tr></thead>
+          <tbody>
+            <tr><td>流式不计 usage</td><td>stream 模式 tokensIn/Out/cost 记 0</td><td>OpenAI 流式 chunk 不带 usage；闭环走非流式，暂不阻塞</td></tr>
+            <tr><td>流式无签名 harvest</td><td>streamRaw 只 inject 不 harvest</td><td>harvest 仅非流式做；闭环 Agent 非流式，不受影响</td></tr>
+            <tr><td>定价表手工维护</td><td>官方调价后成本读数会偏</td><td>PRICING / EMBEDDING_PRICING 需定期对齐</td></tr>
+            <tr><td>仅 OpenAI-compat 形态</td><td>真正异构 provider（Anthropic 原生）不可解</td><td>需新 adapter，非换 baseURL 可覆盖</td></tr>
+            <tr><td>GEMINI_API_KEY 未进 .env.example</td><td>新人不知这个可选 env</td><td>待补文档</td></tr>
+          </tbody>
+        </table>
+        <div class="callout warn"><span class="l">两个联调必踩的坑</span><strong>① .env 改了要重启：</strong><span class="k">tsx watch</span> 只热更代码、<strong>不重读 <span class="k">--env-file</span></strong>——加/改 key 后老进程仍用旧值，必须 ctrl-C 重起。<strong>② localhost 走 IPv6：</strong>Python httpx 把 <span class="k">localhost</span> 解析成 <span class="k">::1</span>，连不上只听 IPv4 的网关——联调时 baseURL 用 <span class="k">127.0.0.1</span> 而非 localhost。</div>
+        <p class="body" style="margin-top:1.6rem">更远的未来：<strong>CostMeter Phase 1</strong>（落 Postgres <span class="k">llm_calls</span> 表）· <strong>per-Agent 成本拆分看板</strong>（现在只有原始日志，尚无聚合视图）· <strong>流式 usage 补齐</strong> · <strong>真正异构 provider adapter</strong>（如 Anthropic 原生 API）。当前的接口设计（透传 + adapter 表 + CallRecord）已为这些留好扩展点，换实现不动调用方。</p>
+      </div>
+    </section>
+
+    <div class="footnav">
+      <a href="overview.html" id="foot-overview">← 返回总览</a>
+      <span class="meta">Atelier · LLM Gateway · 唯一收费站 / 按 model 分流 / OpenAI·Gemini / cost-meter</span>
+      <a href="#intro-top">回到顶部 ↑</a>
+    </div>
+
+   </div>
+  </main>
+</div>
+<div class="scrim" id="scrim"></div>
+
+<script>
+  (function () {
+    var root = document.documentElement, shell = document.getElementById('shell');
+    // theme
+    var tbtn = document.getElementById('themeToggle');
+    function apply(t){ root.setAttribute('data-theme', t); try{ localStorage.setItem('atelier-review-theme', t);}catch(e){} }
+    try{ var s = localStorage.getItem('atelier-review-theme'); if(s) apply(s); }catch(e){}
+    tbtn.addEventListener('click', function(){
+      var cur = root.getAttribute('data-theme');
+      if(!cur) cur = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark':'light';
+      apply(cur === 'dark' ? 'light':'dark');
+    });
+    // toc toggle
+    var tocBtn = document.getElementById('tocBtn'), scrim = document.getElementById('scrim');
+    function isMobile(){ return matchMedia('(max-width: 900px)').matches; }
+    tocBtn.addEventListener('click', function(){
+      if(isMobile()) shell.classList.toggle('tocopen');
+      else shell.classList.toggle('collapsed');
+    });
+    scrim.addEventListener('click', function(){ shell.classList.remove('tocopen'); });
+    // scrollspy
+    var links = Array.prototype.slice.call(document.querySelectorAll('#tocNav a'));
+    var map = {}; links.forEach(function(a){ map[a.getAttribute('href').slice(1)] = a; });
+    var secs = links.map(function(a){ return document.getElementById(a.getAttribute('href').slice(1)); }).filter(Boolean);
+    var obs = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(en.isIntersecting){
+          links.forEach(function(l){ l.classList.remove('active'); });
+          var a = map[en.target.id]; if(a) a.classList.add('active');
+        }
+      });
+    }, { rootMargin: '-45% 0px -50% 0px', threshold: 0 });
+    secs.forEach(function(s){ obs.observe(s); });
+    // close mobile toc on link click
+    links.forEach(function(a){ a.addEventListener('click', function(){ if(isMobile()) shell.classList.remove('tocopen'); }); });
+  })();
+</script>

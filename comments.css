@@ -1,0 +1,31 @@
+/* 区块级 giscus 评论：制图板风格皮肤，复用各页已有的 CSS 变量（带回退） */
+.cmt-btn{position:absolute;top:8px;right:8px;z-index:6;display:inline-flex;align-items:center;gap:.35em;
+  font-family:var(--mono,ui-monospace,monospace);font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-soft,#6b6459);background:var(--paper,#fff);border:1px solid var(--hairline-bold,#d5cfc0);
+  border-radius:20px;padding:.22rem .6rem;cursor:pointer;opacity:.35;
+  transition:opacity .15s,border-color .15s,color .15s}
+section:hover>.cmt-btn,.e2e:hover>.cmt-btn,.inner:hover>.cmt-btn{opacity:.85}
+.cmt-btn:hover{color:var(--clay,#c15f3c);border-color:var(--clay,#c15f3c);opacity:1}
+.cmt-btn.on{color:var(--clay,#c15f3c);border-color:var(--clay,#c15f3c);opacity:1}
+body.cmt-off .cmt-btn{display:none}
+
+.cmt-panel{margin:1rem 0 .4rem;border:1px solid var(--hairline-bold,#d5cfc0);
+  border-left:3px solid var(--clay,#c15f3c);border-radius:8px;background:var(--paper,#fff);
+  padding:.7rem .95rem 1rem}
+.cmt-h{display:flex;justify-content:space-between;align-items:center;gap:1rem;
+  font-family:var(--mono,ui-monospace,monospace);font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-faint,#9a9284);margin-bottom:.5rem}
+.cmt-h .cmt-x{background:transparent;border:0;color:var(--ink-faint,#9a9284);cursor:pointer;font-size:.95rem;line-height:1;padding:.1rem .3rem}
+.cmt-h .cmt-x:hover{color:var(--clay,#c15f3c)}
+.cmt-mount{min-height:32px}
+.cmt-mount .giscus,.cmt-mount .giscus-frame{width:100%}
+
+.cmt-fab{position:fixed;right:16px;bottom:16px;z-index:80;display:inline-flex;align-items:center;gap:.4em;
+  height:42px;padding:0 .9rem;border-radius:22px;
+  border:1px solid var(--hairline-bold,#d5cfc0);background:var(--paper,#fff);color:var(--clay,#c15f3c);
+  font-family:var(--mono,ui-monospace,monospace);font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;
+  cursor:pointer;box-shadow:0 6px 20px -8px rgba(0,0,0,.3)}
+.cmt-fab:hover{border-color:var(--clay,#c15f3c)}
+body.cmt-off .cmt-fab{opacity:.6}
+
+@media (max-width:600px){ .cmt-btn span{display:none} .cmt-fab span{display:none} .cmt-fab{padding:0;width:42px;justify-content:center} }

@@ -352,7 +352,7 @@
       <div class="legend">
         <span><i class="swatch" style="background:var(--clay-bg);border-color:var(--clay)"></i>请求腿 · JetStream 持久队列（agent.*.task）</span>
         <span><i class="swatch" style="background:var(--sage-bg);border-color:var(--sage)"></i>完成腿 · handle.complete → Event History</span>
-        <span><i class="swatch" style="background:var(--slate-bg);border-color:var(--slate)"></i>事件腿 · Core NATS（SSE / 观测台）</span>
+        <span><i class="swatch" style="background:var(--slate-bg);border-color:var(--slate)"></i>事件腿 · Core NATS 热路径 + event_log 持久化旁路</span>
         <span><i class="swatch" style="background:var(--ochre-bg);border-color:var(--ochre)"></i>存储 · Postgres（Blackboard / 幂等）</span>
       </div>
 
@@ -428,6 +428,7 @@
               <div class="fld idx"><span>stream AGENT_TASKS · WORK_QUEUE · consumer {role}-workers</span><span class="ty">durable</span></div>
               <div class="fld"><span>workflow.{wf}.event</span><span class="ty">Core NATS</span></div>
               <div class="fld idx"><span>前端 SSE 订阅（工作流事件流）</span><span class="ty">at-most-once</span></div>
+              <div class="fld idx"><span>event_log_worker 常驻消费者旁路订阅 workflow.*.event → INSERT event_log（反查 tenant · MAX(seq)+1 · 单条失败 continue · 支撑历史回看）</span><span class="ty">#121</span></div>
               <div class="fld"><span>workflow.{wf}.llm</span><span class="ty">Core NATS</span></div>
               <div class="fld idx"><span>观测台订阅（隔离大 LLM payload 不污染 .event）</span><span class="ty">at-most-once</span></div>
             </div>
@@ -444,7 +445,7 @@
           </div>
         </div>
       </div>
-      <p class="plate-cap col center"><b>一眼看穿的切分：</b>左表——<b>请求腿走 JetStream</b>（要持久、要重投），<b>事件腿走 Core NATS</b>（尽力投递，前端断线重连即可）。右表——大产物（代码文件 500KB+）绝不上总线，落 Blackboard；总线消息只带指针 <span class="k">(round, agent_role)</span>。为什么不用 Redis 存 Blackboard？workflow 可能等人工审批跑很久，Redis TTL 会驱逐，Postgres 天然持久还能事务一致。</p>
+      <p class="plate-cap col center"><b>一眼看穿的切分：</b>左表——<b>请求腿走 JetStream</b>（要持久、要重投），<b>事件腿走 Core NATS</b>（热路径尽力投递 + 旁路 event_log 持久化补断线即丢缺口）。右表——大产物（代码文件 500KB+）绝不上总线，落 Blackboard；总线消息只带指针 <span class="k">(round, agent_role)</span>。为什么不用 Redis 存 Blackboard？workflow 可能等人工审批跑很久，Redis TTL 会驱逐，Postgres 天然持久还能事务一致。</p>
     </section>
 
     <!-- ===== II 动态流程 ===== -->

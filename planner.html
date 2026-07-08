@@ -295,7 +295,7 @@
       <a href="#interview"><span class="num">Q</span>面试要点</a>
       <a href="#limits"><span class="num">…</span>限制与未来</a>
     </nav>
-    <div class="toc-foot">07 / Planner<br>切片=实现单位 · Blocked-by DAG<br>四查门 · 有界重切 · standalone</div>
+    <div class="toc-foot">07 / Planner<br>切片=实现单位 · Blocked-by DAG<br>四查门 · 有界重切 · run_planner 接入</div>
   </aside>
 
   <main class="content">
@@ -313,7 +313,7 @@
         <div><dt>校验门</dt><dd>四查 · 确定性<small>引用/无环/覆盖/scaffold</small></dd></div>
         <div><dt>自纠偏</dt><dd>有界重切 ≤2<small>一次 plan ≤3 次 produce</small></dd></div>
         <div><dt>两分支</dt><dd>greenfield + brownfield<small>只读 agentic pass</small></dd></div>
-        <div><dt>验证</dt><dd>170 unit + live 2<small>gemini-3.5-flash · standalone</small></dd></div>
+        <div><dt>验证</dt><dd>170 unit + live 2<small>gemini-3.5-flash · run_planner 接入</small></dd></div>
       </dl>
     </header>
 
@@ -389,14 +389,14 @@
               <div class="band">
                 <div class="lyr2">
                   <div class="node store"><span class="lbl">核心产物 · models.py</span><span class="nm">PlanOutput · list[Slice]</span><span class="ds">DAG = 节点 + 各 slice 内联的 blocked_by 边，无独立 edge 表</span></div>
-                  <div class="node store"><span class="lbl">下游 · 蓝图 level-2+</span><span class="nm">并行编排 ② → Merge ③</span><span class="ds">按拓扑波次 fan-out 闭环 Coder；切片分支归并回集成分支</span></div>
+                  <div class="node store"><span class="lbl">下游 · child OrchestratorWorkflow（ADR-0015）</span><span class="nm">并行编排 ② → Merge ③</span><span class="ds">按拓扑波次 fan-out 闭环 Coder；切片分支归并回集成分支</span></div>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-      <p class="plate-cap col center"><b>怎么读：</b>数据自上而下流——两份结构化契约进 <b>build_planning_context</b> 渲染成起手 message，进 <b>Planner.plan</b> 的自纠偏大脑（produce → 自检 → stamp → 四查门 → 重切），产出一张校验过的 <b>PlanOutput</b>。整块<b>standalone</b>：不接 NATS / Temporal / Blackboard / GitHub，LLM 调用一律经 LLM Gateway（ADR-0009）——先证后接。</p>
+      <p class="plate-cap col center"><b>怎么读：</b>数据自上而下流——两份结构化契约进 <b>build_planning_context</b> 渲染成起手 message，进 <b>Planner.plan</b> 的自纠偏大脑（produce → 自检 → stamp → 四查门 → 重切），产出一张校验过的 <b>PlanOutput</b>。Planner <b>库本身仍不 import Temporal / NATS</b>（by design，保持可纯测），LLM 调用一律经 LLM Gateway（ADR-0009）；但它已被 workflow-engine 的 <span class="k">run_planner</span> activity 在 FeatureWorkflow 内包装调用（<span class="k">RunPlannerActivityInput/Result</span> 出入参），产出经 <span class="k">planner_done</span> SSE 事件投影切片给前端——<b>库 standalone、workflow-engine 包装</b>（ADR-0015）。</p>
 
       <div class="col">
         <h3>核心数据形状：一个 Slice 是什么，一次 plan 返回什么</h3>
@@ -514,7 +514,7 @@ failures = [
 [3] 点击统计   kind=<span class="g">feature</span>   blocked_by=[<span class="b">"0","1"</span>]  <span class="g"># ✅ 补上</span></pre>
             <p class="micro-note">重切不是「盲目再来一遍」——带着「哪条为什么挂」的诊断，逼 LLM 定向修复。</p></div></div>
 
-          <div class="beat"><div class="when">合法 DAG</div><div><p class="what">重新 stamp + <span class="k">validate_plan</span> → 四查全过。返回 <span class="k">PlanResult(status="ok")</span>。DAG 拓扑波次清晰，交下游并行编排 ②。</p>
+          <div class="beat"><div class="when">合法 DAG</div><div><p class="what">重新 stamp + <span class="k">validate_plan</span> → 四查全过。返回 <span class="k">PlanResult(status="ok")</span>。DAG 拓扑波次清晰，经 <span class="k">resolve_plan</span> 闸后交下游 child OrchestratorWorkflow 并行编排 ②。</p>
             <pre><span class="c"># 拓扑波次（编排器按此 fan-out）</span>
 wave-0:  [0] 项目骨架 <span class="y">(scaffold)</span>
 wave-1:  [1] 短码生成
@@ -567,7 +567,7 @@ while True:
           <ul class="tight">
             <li class="body"><strong>为什么有界</strong>：无限重切会撞 <span class="k">#57</span> 式空转（闭环模块的经典坑）。2 次是止损，撞满即降级交人，不硬撑。</li>
             <li class="body"><strong>best-so-far</strong>：即便最终交人，也交<em>失败最少</em>的那版，人接手成本最低（首版兜底、相等不替换保留更早版）。</li>
-            <li class="body"><strong>不 raise、不甩坏 DAG</strong>：<span class="k">needs_human</span> 是显式状态，未来编排器映射为 <span class="k">resolve_plan</span> 人工闸门 + Temporal Signal。</li>
+            <li class="body"><strong>不 raise、不甩坏 DAG</strong>：<span class="k">needs_human</span> 是显式状态，FeatureWorkflow 已把它映射为 <span class="k">resolve_plan</span> 人工闸门（Temporal Signal）——发 <span class="k">PLAN_PENDING_APPROVAL</span> 事件后 <span class="k">wait_condition</span> 挂起等用户批/拒（ADR-0015）。</li>
           </ul>
         </div>
       </details>
@@ -657,12 +657,12 @@ remapped = [index_to_id.get(dep, dep) for dep in s.blocked_by]</pre>
           <thead><tr><th>限制</th><th>影响</th><th>当前缓解</th></tr></thead>
           <tbody>
             <tr><td>切片间重叠检测未做</td><td>brownfield 多切片碰同一既有文件无结构化告警</td><td>#77 只让 LLM 借只读工具自识别，留后续片</td></tr>
-            <tr><td>未接编排 / GitHub / Temporal</td><td>产物 PlanOutput 还没有下游消费</td><td>standalone 先证后接；蓝图 level-2+</td></tr>
+            <tr><td>GitHub issue 单向投影未接</td><td>PlanOutput 已被 child OrchestratorWorkflow 消费（ADR-0015），但暂无 issue 投影入口/回看</td><td>幂等键已备（Slice.id，ADR-0002 §3.3）；投影 activity 后续片</td></tr>
             <tr><td>无独立 planner-reviewer</td><td>切法好坏只靠一轮软自检</td><td>下游 Loop B 兜底 + eval 结论支撑省掉</td></tr>
             <tr><td>机械门不判切法好坏</td><td>机械合法但切得糙的计划仍会过门</td><td>自检软批评 + needs_human + 下游纠偏</td></tr>
           </tbody>
         </table>
-        <p class="body" style="margin-top:1.6rem">更远的未来：<strong>接并行编排 ②</strong>（Temporal child workflow 按拓扑波次 fan-out 闭环 Coder）· <strong>GitHub issue 单向投影</strong>（幂等 activity，键取 <span class="k">Slice.id</span>，ADR-0002 §3.3）· <strong>切片间重叠检测</strong>（brownfield 次级信号告警）· <strong>Merge ③ 归并</strong>切片分支回集成分支。</p>
+        <p class="body" style="margin-top:1.6rem">已接入下游（ADR-0015）：<strong>run_planner activity</strong> 在 FeatureWorkflow 内包装 Planner → <strong>resolve_plan 人工闸</strong>（Temporal Signal）→ <strong>child OrchestratorWorkflow</strong> 按拓扑波次 fan-out 闭环 Coder、<strong>Merge ③</strong> 归并切片分支回集成分支。仍推后：<strong>GitHub issue 单向投影</strong>（幂等 activity，键取 <span class="k">Slice.id</span>，ADR-0002 §3.3）· <strong>切片间重叠检测</strong>（brownfield 次级信号告警）。</p>
         <div class="callout"><span class="l">落地实证</span>5 片 #74–#78 完整落地，standalone，greenfield + brownfield 两分支。模块全量 <span class="k">170 passed + 2 skipped</span>、ruff clean；真 <span class="k">gemini-3.5-flash</span> 经 LLM Gateway 端到端 <span class="k">live 2 passed in 62s</span>——greenfield 产合法 DAG（wave-0 scaffold + features Blocked-by 它、残余共享聚合文件不被串行化）、brownfield 命名真实文件。</div>
       </div>
     </section>

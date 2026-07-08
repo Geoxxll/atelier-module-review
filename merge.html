@@ -783,12 +783,12 @@ async def merge_wave(..., *, regression_gate=_USE_REAL_DEFAULT,
           <thead><tr><th>限制</th><th>影响</th><th>当前缓解</th></tr></thead>
           <tbody>
             <tr><td>真 GitHub publisher 未接线</td><td>finalize 的 publisher 目前只有注入形态</td><td>gh/API + resolve_publish Signal 归 Temporal 块</td></tr>
-            <tr><td>merge_wave/finalize 仍 standalone</td><td>未切 Temporal activity、未接 ② 供给</td><td>接编排（每步切 activity）归后续</td></tr>
-            <tr><td>临时 ref / 尸检 workspace 未清扫</td><td>refs/merge-candidates/* 与失败 workspace 长存</td><td>run 级清扫策略归 ④（登记不在本模块做）</td></tr>
-            <tr><td>升级梯只做 L1</td><td>L2/L3 需 ② 编排与人工闸配合才闭环</td><td>Merge 只结构化上报，路由键已就位</td></tr>
+            <tr><td>brownfield 大套件波回归门跑全套</td><td>大仓库每候选全量重跑，慢</td><td>选测/分层是运行时优化、不进门语义，归后续</td></tr>
+            <tr><td>临时 ref / 尸检 workspace 未清扫</td><td>refs/merge-candidates/* 与失败 workspace 长存</td><td>run 级清扫策略归 ②（登记不在本模块做）</td></tr>
+            <tr><td>升级梯 Merge 侧只做 L1</td><td>L2 重派 / L3 人工闸归 ② 编排（设计边界，非缺口）</td><td>② 已实现 L2 重派 + L3 resolve_merge（#93）；Merge 结构化上报即闭环</td></tr>
           </tbody>
         </table>
-        <p class="body" style="margin-top:1.6rem">更远的未来：<strong>brownfield 大套件的选测/分层</strong>（当前波回归门跑全套，是运行时优化不进门语义）· <strong>接 Temporal 每步切 activity</strong>（standalone → 可恢复的 durable workflow）· <strong>② 编排的 L2 重派闭环</strong>（Merge 上报 failed_slice_ids，编排在集成头重派）。</p>
+        <p class="body" style="margin-top:1.6rem">更远的未来：Merge 侧唯一真实的开放项是<strong>真 GitHub publisher 接线</strong>（gh/API push + 开 PR + <span class="k">resolve_publish</span> 人工闸，当前只有注入形态）。而<strong>接 Temporal 每步切 activity</strong>（<span class="k">merge_wave_activity</span> / <span class="k">finalize_activity</span> 一波一 activity）、<strong>② 编排的 L2 重派闭环</strong>（Merge 上报 failed_slice_ids，编排在集成头重派）、以及闭环 cutover 成 child <span class="k">OrchestratorWorkflow</span>（ADR-0015）——均已落地。</p>
         <div class="callout"><span class="l">测试台账 · 离线全谱系 + Docker-gated 活证据</span>Slice 1–5 全 TDD 落地：合成 git fixture + 脚本化假件（ScriptedGate / RecordingReconciler / ScriptedFixCoder）离线跑全谱系（零 Docker/网络/LLM），真容器活证据归 Docker-gated <span class="k">tests/test_merge_live_e2e.py</span>（缺 Docker 干净跳过）。三接缝真接线见 <span class="k">merge/real_defaults.py</span>。</div>
       </div>
     </section>

@@ -374,7 +374,7 @@
                 <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.7rem">
                   <div class="node"><span class="lbl">sandbox.py</span><span class="nm">LiveSandbox · ExecResult</span><span class="ds">长生命容器执行原语（Coder / Runner）</span></div>
                   <div class="node"><span class="lbl">independent_test_runner.py</span><span class="nm">IndependentTestRunner</span><span class="ds">干净容器独立重跑（Reviewer / Merge）</span></div>
-                  <div class="node"><span class="lbl">merge/git_ops.py</span><span class="nm">run_git · rev_parse</span><span class="ds">host-git 安全出口（Merge / Orchestrator）</span></div>
+                  <div class="node"><span class="lbl">git_ops.py</span><span class="nm">run_git · rev_parse</span><span class="ds">host-git 安全出口（Merge / Orchestrator）；merge/ 仅 re-export shim</span></div>
                   <div class="node"><span class="lbl">react_kernel.py</span><span class="nm">CustomReActAgent · finish_guard</span><span class="ds">通用 ReAct 内核（Coder / L1 fix-Coder）</span></div>
                   <div class="node"><span class="lbl">provisioning.py</span><span class="nm">resolve_image · provision_*</span><span class="ds">镜像/依赖查表（Coder / Reviewer / Merge）</span></div>
                   <div class="node"><span class="lbl">pagination.py</span><span class="nm">paginate_text</span><span class="ds">翻页/截断纯逻辑（两侧 read 工具）</span></div>
@@ -398,7 +398,7 @@
             <tbody>
               <tr><th>LiveSandbox · ExecResult<br><span class="k">sandbox.py</span></th><td>task 级<strong>长生命</strong> Docker 容器：bind-mount workspace、<span class="k">docker exec</span> 逐步注入、<span class="k">demux</span> 分离 stdout/stderr；caps 512m / 1CPU。</td><td class="a">Coder（执行边界）<br>+ Runner 起干净容器</td></tr>
               <tr><th>IndependentTestRunner<br><span class="k">independent_test_runner.py</span></th><td>给一个 workspace，<strong>起全新干净容器</strong>按 tech_stack provision 后独立重跑测试，产 <span class="k">passed</span> 硬信号。</td><td class="b">Reviewer 对抗 review<br>+ Merge 波回归门</td></tr>
-              <tr><th>run_git · rev_parse<br><span class="k">merge/git_ops.py</span></th><td>host 上跑 git 的<strong>唯一出口</strong>，中和仓库自带 hooks / filters（<span class="k">core.hooksPath=/dev/null</span> 等）。</td><td class="a">Merge 归并<br>+ Orchestrator ② 检出</td></tr>
+              <tr><th>run_git · rev_parse<br><span class="k">git_ops.py</span></th><td>host 上跑 git 的<strong>唯一出口</strong>，中和仓库自带 hooks / filters（<span class="k">core.hooksPath=/dev/null</span> 等）。现居模块根，<span class="k">merge/git_ops.py</span> 退为 re-export shim（#90）。</td><td class="a">Merge 归并<br>+ Orchestrator ② 检出</td></tr>
               <tr><th>CustomReActAgent · finish_guard<br><span class="k">react_kernel.py</span></th><td>通用「思考→调工具→观察→纠偏」<strong>ReAct 内核</strong>，带 <span class="k">finish_guard</span> 终止门 + <span class="k">on_step</span> 观察钩子。</td><td class="b">Coder loop<br>+ Merge L1 fix-Coder</td></tr>
               <tr><th>resolve_image · provision_*<br><span class="k">provisioning.py</span></th><td>按 <span class="k">tech_stack</span> 选基础镜像 + 派生预置命令的<strong>纯数据查表</strong>；greenfield 退默认 python 镜像。</td><td class="a">Coder / Reviewer / Merge<br>（起容器前都要）</td></tr>
               <tr><th>paginate_text<br><span class="k">pagination.py</span></th><td>把文本按行 <span class="k">offset/limit</span> 翻页 + 标注 total / truncated 的<strong>无副作用纯函数</strong>。</td><td class="b">Coder read 工具<br>+ Reviewer read 工具</td></tr>
@@ -633,11 +633,10 @@ env = {..., "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_SYSTEM": os.devnull}</p
           <tbody>
             <tr><td>镜像/工具硬编码字典</td><td>只认 python / node，未知运行时退默认或返回 None</td><td>tech_stack 显式给 image / test_command 覆盖</td></tr>
             <tr><td>独立重跑跑整套测试</td><td>brownfield 大套件慢，无选测/分层</td><td>运行时优化，不进门语义，推后</td></tr>
-            <tr><td>git_ops 物理在 merge/ 下</td><td>Orchestrator ② 也用，位置与「模块根叶子」名义偏离</td><td>布局债，功能已单向共享；待上提模块根</td></tr>
             <tr><td>ReAct 内核 fork 出两份相似 loop</td><td>legacy 与闭环并存的短期重复</td><td>ADR-0012 §4.2 明记，A/B 决胜前不收敛</td></tr>
           </tbody>
         </table>
-        <p class="body" style="margin-top:1.6rem">更远的未来：<strong>git_ops 上提模块根</strong>（与 sandbox / provisioning 并列，兑现「叶子层」名义）· <strong>provision 查表数据化</strong>（配置驱动而非硬编码字典）· <strong>回归门选测分层</strong>（brownfield 大套件按 file footprint 裁剪）· <strong>内核收敛</strong>（闭环赢 A/B 后 legacy 退役、两份 loop 归一）。</p>
+        <p class="body" style="margin-top:1.6rem">已交付：<strong>git_ops 上提模块根</strong>（#90，与 sandbox / provisioning 并列的叶子，<span class="k">merge/git_ops.py</span> 退为 re-export shim）。更远的未来：<strong>provision 查表数据化</strong>（配置驱动而非硬编码字典）· <strong>回归门选测分层</strong>（brownfield 大套件按 file footprint 裁剪）· <strong>内核收敛</strong>（闭环赢 A/B 后 legacy 退役、两份 loop 归一）。</p>
         <div class="callout"><span class="l">一句话记住这个模块</span>共享基座不是「一堆 util」，而是一个<strong>被刻意约束了依赖方向的结构</strong>：一个能力被 ≥2 兄弟需要就下沉成单向叶子，四人向下够、彼此不横向勾连，re-export shim 让搬家零回归。这是把「依赖倒置 + 命名按能力」两条原则写进目录结构的一次实践（ADR-0012）。</div>
       </div>
     </section>

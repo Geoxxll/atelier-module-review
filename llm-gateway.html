@@ -312,7 +312,7 @@
         <div><dt>技术栈</dt><dd>TS + Hono<small>:3001 · 唯一 TS 后端</small></dd></div>
         <div><dt>路由方式</dt><dd>按 model 名<small>纯函数前缀判定</small></dd></div>
         <div><dt>provider</dt><dd>OpenAI · Gemini<small>共用一份透传逻辑</small></dd></div>
-        <div><dt>成本计量</dt><dd>cost-meter<small>每次调用落结构化日志</small></dd></div>
+        <div><dt>成本计量</dt><dd>cost-meter<small>每次调用落 llm_calls 表</small></dd></div>
         <div><dt>核心不变量</dt><dd>ADR-0009<small>Agent 不持任何凭证</small></dd></div>
       </dl>
     </header>
@@ -443,8 +443,8 @@
               <header><h4>计量 / 观测<small>Pipeline</small></h4></header>
               <dl>
                 <div class="memrow mono"><dt>入口</dt><dd>pipeline/cost-meter.ts</dd></div>
-                <div class="memrow"><dt>做什么</dt><dd>usage → costUsd + provider/model/tenant/延迟落结构化日志</dd></div>
-                <div class="memrow mono"><dt>事件名</dt><dd>llm_call_completed</dd></div>
+                <div class="memrow"><dt>做什么</dt><dd>usage → costUsd + 延迟落结构化日志（llm_call_completed）+ INSERT llm_calls</dd></div>
+                <div class="memrow mono"><dt>落库</dt><dd>pipeline/pg-sink.ts · PgLlmCallsSink（PoolLike 依赖倒置）</dd></div>
                 <div class="memrow"><dt>红线</dt><dd>计量元数据走 Header，不污染 OpenAI 请求体</dd></div>
               </dl>
             </div>
@@ -481,7 +481,7 @@
           </div>
         </div>
       </div>
-      <p class="plate-cap col center"><b>关键节奏：</b>校验 →（路由）→ 透传 → 计量 → 原样回传。<b>透传是主轴</b>，路由/补偿/计量都是「贴在透传两侧」的横切逻辑——正因为它们不改 body 的语义，Agent 才对整条链路无感。流式模式同理，但 usage 记 0（OpenAI 流式 chunk 不带 usage，属已知债）。</p>
+      <p class="plate-cap col center"><b>关键节奏：</b>校验 →（路由）→ 透传 → 计量 → 原样回传。<b>透传是主轴</b>，路由/补偿/计量都是「贴在透传两侧」的横切逻辑——正因为它们不改 body 的语义，Agent 才对整条链路无感。流式模式同理，usage 也已修——<span class="k">streamRaw</span> 经 <span class="k">onUsage</span> 回调收末个 chunk 的真实 usage、落真实成本（上游没吐 usage 时兜底 0）。</p>
 
       <div class="plate">
         <div class="plate-head"><span class="t">图版 <b>II-b</b> · Gemini thought_signature 多轮修复</span><span class="n">DYNAMIC · signature repair</span></div>
@@ -636,23 +636,24 @@ for (let attempt = 1; attempt &lt;= maxFilterRetries; attempt++) {
         </div>
       </details>
 
-      <details class="deep" data-tag="cost-meter.ts · openai.ts PRICING">
-        <summary>④ cost-meter：每次调用后把 token 折成钱</summary>
+      <details class="deep" data-tag="cost-meter.ts · pg-sink.ts · PRICING">
+        <summary>④ cost-meter：每次调用后把 token 折成钱，落日志 + 落库</summary>
         <div class="inner">
-          <p class="body">计量在透传收尾处发生：<span class="k">extractUsage</span> 从响应 usage 读 token，命中缓存 token 走 cachedInput 价，按定价表折算成 <span class="k">costUsd</span>，再由 <span class="k">CostMeter.record</span> 落一条结构化日志：</p>
+          <p class="body">计量在透传收尾处发生：<span class="k">extractUsage</span> 从响应 usage 读 token，命中缓存 token 走 cachedInput 价，按定价表折算成 <span class="k">costUsd</span>，再由 <span class="k">CostMeter.record</span> 落一条结构化日志、并 <span class="k">await sink.insert</span> 写 Postgres <span class="k">llm_calls</span>：</p>
           <pre>function calcCost(model, tokensIn, tokensOut, cachedTokens) {
   const price = PRICING[model] ?? { input: 5.0, output: 15.0, cachedInput: 2.5 }  <span class="c">// 未知 model 兜底价</span>
   return ((tokensIn - cachedTokens) * price.input
         + cachedTokens * price.cachedInput
         + tokensOut * price.output) / 1_000_000                <span class="c">// USD / 1M token</span>
 }
-<span class="c">// CostMeter.record → 结构化日志（Phase 0：仅日志，便于 Loki 聚合）</span>
+<span class="c">// CostMeter.record → 结构化日志（Loki 聚合）+ 落库 llm_calls</span>
 logger.info(<span class="g">'llm_call_completed'</span>, { provider, model, tenantId, workflowId,
-  taskKind, tokensIn, tokensOut, cachedTokens, costUsd, latencyMs, cacheLayer })</pre>
+  taskKind, tokensIn, tokensOut, cachedTokens, costUsd, latencyMs, cacheLayer })
+<span class="b">await</span> this.sink?.insert(rec)   <span class="c">// PgLlmCallsSink → INSERT llm_calls（缺 sink 时退化纯日志）</span></pre>
           <ul class="tight">
             <li class="body"><strong>元数据走 Header 不进 body</strong>：tenant/workflow/taskKind/trace 从 <span class="k">X-Atelier-*</span> 自定义 Header 读，绝不污染 OpenAI 格式的请求体。</li>
-            <li class="body"><strong>Phase 0 = 只写日志</strong>：接口已定（<span class="k">CallRecord</span>），Phase 1 换成写 Postgres <span class="k">llm_calls</span> 表不影响调用方——先可观测、后可持久化。</li>
-            <li class="body"><strong>已知债</strong>：流式分支不计 usage（OpenAI 流式 chunk 不带 usage，tokensIn/Out/cost 记 0）；定价表手工维护，需定期对齐官方价。</li>
+            <li class="body"><strong>已落库（现在时）</strong>：<span class="k">record()</span> 里 <span class="k">await sink.insert(rec)</span> 真写 Postgres <span class="k">llm_calls</span>（<span class="k">PgLlmCallsSink</span>，供配额预检 / 成本看板聚合）；需装 pg 依赖 + <span class="k">DATABASE_URL</span>，缺 sink 时退化为纯日志、不阻塞网关。CostMeter 只依赖窄接口 <span class="k">LlmCallsSink</span>，换实现（再叠 ClickHouse 等）不动调用方。</li>
+            <li class="body"><strong>已知债</strong>：定价表手工维护，需定期对齐官方价；tenantId 非 uuid（Header 缺省兜底 <span class="k">unknown</span>）时跳过写库、只留一条 warn。</li>
           </ul>
         </div>
       </details>
@@ -688,7 +689,7 @@ logger.info(<span class="g">'llm_call_completed'</span>, { provider, model, tena
         <div class="ivcard"><div class="q">配错 provider 该报错还是兜底？</div><h4>宁可早爆不静默</h4><p>点 gemini-* 没配 key → 直接 400，<strong>绝不静默打到 OpenAI</strong>。静默降级会让「本想跑 Gemini 却偷跑 OpenAI」污染一整轮评测读数，比崩掉更坏。</p></div>
         <div class="ivcard"><div class="q">Gemini 的坑为什么修在网关？</div><h4>唯一能看见的层</h4><p>签名被 LangChain 吃掉后 Agent 侧无从补——<strong>网关是唯一同时看见「原始响应」和「出站请求」</strong>的层。怪癖收敛在 adapter，Agent 保持 provider 无感。</p></div>
         <div class="ivcard"><div class="q">透传代理为什么只做最小校验？</div><h4>不拦截即不误伤</h4><p>多校验一个字段就可能拦掉 tools / response_format，让 LangChain 结构化输出失灵。<strong>passthrough 一切非必需字段</strong>——白拿整个 OpenAI 生态。</p></div>
-        <div class="ivcard"><div class="q">计量为什么先只写日志？</div><h4>接口先行 · 实现后置</h4><p>CallRecord 接口已定，Phase 0 落结构化日志即可 Loki 聚合，Phase 1 换 Postgres 表<strong>不影响调用方</strong>。先可观测、后可持久化，不过早工程化。</p></div>
+        <div class="ivcard"><div class="q">计量落库为什么走窄接口注入？</div><h4>依赖倒置 · 可测</h4><p>CostMeter 只认 <strong>LlmCallsSink 窄接口</strong>：生产注入 PgLlmCallsSink 真写 llm_calls，单测传 fake 断言写入。缺 sink（没配 DATABASE_URL）时<strong>退化纯日志、不阻塞网关启动</strong>——换实现不动调用方。</p></div>
       </div>
     </section>
 
@@ -700,7 +701,7 @@ logger.info(<span class="g">'llm_call_completed'</span>, { provider, model, tena
         <table class="limits">
           <thead><tr><th>限制</th><th>影响</th><th>当前缓解 / 计划</th></tr></thead>
           <tbody>
-            <tr><td>流式不计 usage</td><td>stream 模式 tokensIn/Out/cost 记 0</td><td>OpenAI 流式 chunk 不带 usage；闭环走非流式，暂不阻塞</td></tr>
+            <tr><td>成本聚合视图缺</td><td>cost 已落 llm_calls，但无 per-Agent dashboard</td><td>原始行齐了，聚合 / 看板待建；配额预检已先用上</td></tr>
             <tr><td>流式无签名 harvest</td><td>streamRaw 只 inject 不 harvest</td><td>harvest 仅非流式做；闭环 Agent 非流式，不受影响</td></tr>
             <tr><td>定价表手工维护</td><td>官方调价后成本读数会偏</td><td>PRICING / EMBEDDING_PRICING 需定期对齐</td></tr>
             <tr><td>仅 OpenAI-compat 形态</td><td>真正异构 provider（Anthropic 原生）不可解</td><td>需新 adapter，非换 baseURL 可覆盖</td></tr>
@@ -708,7 +709,7 @@ logger.info(<span class="g">'llm_call_completed'</span>, { provider, model, tena
           </tbody>
         </table>
         <div class="callout warn"><span class="l">两个联调必踩的坑</span><strong>① .env 改了要重启：</strong><span class="k">tsx watch</span> 只热更代码、<strong>不重读 <span class="k">--env-file</span></strong>——加/改 key 后老进程仍用旧值，必须 ctrl-C 重起。<strong>② localhost 走 IPv6：</strong>Python httpx 把 <span class="k">localhost</span> 解析成 <span class="k">::1</span>，连不上只听 IPv4 的网关——联调时 baseURL 用 <span class="k">127.0.0.1</span> 而非 localhost。</div>
-        <p class="body" style="margin-top:1.6rem">更远的未来：<strong>CostMeter Phase 1</strong>（落 Postgres <span class="k">llm_calls</span> 表）· <strong>per-Agent 成本拆分看板</strong>（现在只有原始日志，尚无聚合视图）· <strong>流式 usage 补齐</strong> · <strong>真正异构 provider adapter</strong>（如 Anthropic 原生 API）。当前的接口设计（透传 + adapter 表 + CallRecord）已为这些留好扩展点，换实现不动调用方。</p>
+        <p class="body" style="margin-top:1.6rem">更远的未来：<strong>per-Agent 成本拆分看板</strong>（cost 已落 <span class="k">llm_calls</span>，但聚合视图 / dashboard 尚缺）· <strong>真正异构 provider adapter</strong>（如 Anthropic 原生 API，非换 baseURL 可覆盖）· <strong>定价表自动对齐官方价</strong>。当前的接口设计（透传 + adapter 表 + CallRecord + <span class="k">LlmCallsSink</span> 窄接口）已为这些留好扩展点，换实现不动调用方。</p>
       </div>
     </section>
 

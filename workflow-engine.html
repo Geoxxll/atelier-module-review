@@ -295,7 +295,7 @@
       <a href="#interview"><span class="num">Q</span>面试要点</a>
       <a href="#limits"><span class="num">…</span>限制与未来</a>
     </nav>
-    <div class="toc-foot">03 / 工作流编排<br>Temporal · 确定性编排<br>7 Signal · uuid5 · ADR-0011</div>
+    <div class="toc-foot">03 / 工作流编排<br>Temporal · 确定性编排<br>8 Signal · uuid5 · ADR-0011</div>
   </aside>
 
   <main class="content">
@@ -304,14 +304,14 @@
     <header class="hero" id="intro-top">
       <div class="plate-no">Plate 03 — Workflow Engine</div>
       <h1>工作流编排</h1>
-      <p class="lede">一段能横跨几天、中途等人拍板、崩了还能原地续跑的「导演脚本」——把 PM→Architect→Coder→Reviewer 串成一条可靠流水线。</p>
+      <p class="lede">一段能横跨几天、中途等人拍板、崩了还能原地续跑的「导演脚本」——把 PM→Architect→Planner→闭环执行 串成一条可靠流水线。</p>
       <div class="oneliner col">
-        一句话：<span class="k">FeatureWorkflow</span> 是这条 <b>legacy 端到端链路的总导演</b>（PM/Architect/记忆蒸馏共用上游 + open-loop 编码基线；当前编码走闭环管线）。它自己<b>不干活、不碰 IO</b>——只用确定性的编排逻辑决定「下一步派谁、等哪个信号、循环几轮」。真正的活（LLM、数据库、NATS）全丢给 <b>Activity</b>；真正的拍板（批 PRD、审技术方案）靠 <b>Signal</b> 让人插手。崩溃后 Temporal 靠<b>重放</b>恢复到崩前一刻——代价是 Workflow 代码必须<b>字字确定</b>。
+        一句话：<span class="k">FeatureWorkflow</span> 是这条<b>端到端链路的总导演</b>（PM→Architect→Planner→child 编排闭环执行，闭环就跑在它内部）。它自己<b>不干活、不碰 IO</b>——只用确定性的编排逻辑决定「下一步派谁、等哪个信号、循环几轮」。真正的活（LLM、数据库、NATS）全丢给 <b>Activity</b>；真正的拍板（批 PRD、审技术方案）靠 <b>Signal</b> 让人插手。崩溃后 Temporal 靠<b>重放</b>恢复到崩前一刻——代价是 Workflow 代码必须<b>字字确定</b>。
       </div>
       <dl class="glance">
         <div><dt>编排引擎</dt><dd>Temporal<small>Durable Execution · 重放恢复</small></dd></div>
-        <div><dt>人机回环</dt><dd>7 个 Signal<small>refine / 澄清 / PRD / TechSpec</small></dd></div>
-        <div><dt>循环结构</dt><dd>3 环 + 分支<small>软上限 20 · 硬闸 3 · 3</small></dd></div>
+        <div><dt>人机回环</dt><dd>8 个 Signal<small>refine / PRD / TechSpec / Plan</small></dd></div>
+        <div><dt>循环结构</dt><dd>3 环 + 分支<small>软上限 20 · 硬闸 3 · 无上限</small></dd></div>
         <div><dt>确定性</dt><dd>uuid5 定 task_id<small>禁 uuid4 / now / random</small></dd></div>
         <div><dt>任务投递</dt><dd>ADR-0011<small>JetStream + async completion</small></dd></div>
       </dl>
@@ -326,7 +326,7 @@
         <ul class="tight">
           <li class="body"><strong>太久</strong>——一次功能开发可能跑几十分钟到几天，中间挂着好几次 LLM 长调用。进程重启、机器换代，一个裸 async 函数的内存状态就全没了。</li>
           <li class="body"><strong>要等人</strong>——PRD 要用户点「批准」、技术方案要用户点「通过」。这个「等」可能是 5 秒，也可能是明天早上。你不能真的让一个线程干等一整夜。</li>
-          <li class="body"><strong>会崩</strong>——Coder 跑到第 3 轮修复时 worker 崩了，你希望它<em>从第 3 轮续</em>，而不是从 PM 写 PRD 重来一遍（那要重烧多少 LLM 钱）。</li>
+          <li class="body"><strong>会崩</strong>——闭环执行跑到某个切片时 worker 崩了，你希望它<em>从那一步续</em>，而不是从 PM 写 PRD 重来一遍（那要重烧多少 LLM 钱）。</li>
         </ul>
         <p class="body">Temporal 的答案是 <strong>Durable Execution（可持久化执行）</strong>：把编排逻辑写成一个<strong>可重放的</strong> Workflow。它把每一步的输入输出记进 Event History；崩溃后<strong>重新执行一遍代码</strong>，遇到已记录的步骤直接取历史结果、不重跑，一路快进到崩前那一刻，再继续。等人？用 <span class="k">wait_condition</span> 挂起，不占线程，Signal 一到就醒。</p>
         <div class="callout">
@@ -345,8 +345,8 @@
       </div>
 
       <div class="callout warn">
-        <span class="l">读前须知 · 这是 legacy 编排器</span>
-        这条 <span class="k">FeatureWorkflow</span> 是 Atelier 的<strong>早期 open-loop 端到端编排器</strong>。其中 <b>PM / Architect / 记忆蒸馏</b> 阶段是当前仍在用的共享上游（产出 PRD+TechSpec）；但下面 <b>Step 3 Coder 全量初次生成 + Step 4 Reviewer ≤3 轮循环</b>是 <strong>open-loop 基线</strong>——<strong>当前主链路的编码已改走闭环管线</strong>（<a href="planner.html" style="color:var(--clay)">Planner</a> 切片 → <a href="orchestrator.html" style="color:var(--clay)">Orchestrator</a> 波次并行闭环 → <a href="merge.html" style="color:var(--clay)">Merge</a> 归并，由 ⑤ Temporal 编排）。本模块的 open-loop 编码阶段 + Blackboard 在<strong>退役路上</strong>，保留作 A/B 对照基线。
+        <span class="l">读前须知 · 闭环就在 FeatureWorkflow 内部</span>
+        这条 <span class="k">FeatureWorkflow</span> 是 Atelier 的<strong>当前主编排器</strong>。<b>PM / Architect / 记忆蒸馏</b>上游沿用不变；但 legacy 的 <b>Step 3 Coder 全量初次生成 + Step 4 Reviewer ≤3 轮循环</b>已在 <span class="k">run()</span> 里<strong>就地摘除</strong>，换成 <b>Step 3′ Planner 切片 → resolve_plan 人工闸 → Step 6 child OrchestratorWorkflow</b>（波次并行闭环 <a href="coder.html" style="color:var(--clay)">Coder</a>/<a href="reviewer.html" style="color:var(--clay)">Reviewer</a> → <a href="merge.html" style="color:var(--clay)">Merge</a> 归并，见 <a href="orchestrator.html" style="color:var(--clay)">Orchestrator</a>）。闭环<strong>不是平行的另一条链，而是这个 workflow 内部的一段 child workflow</strong>。legacy <span class="k">run_coder_agent / run_reviewer_agent</span> activity 保留作 A/B 基线（ADR-0013 闸门前不删），但 <span class="k">run()</span> 不再调用（ADR-0015 cutover）。
       </div>
 
       <div class="legend">
@@ -370,22 +370,24 @@
               <div class="card"><div class="who">Step 1.5 / 1.6 · 蒸馏 SOP + 语义（fire-and-forget）</div><p class="what">PRD 一定稿，此刻 <span class="k">conversation_history</span> 最完整（Architect 还没追加）。两个蒸馏 Activity 从整段轨迹抽「撰写偏好 SOP」和「用户/产品事实」。<b>包在 try/except 里，失败只 warning、不阻断交付</b>。</p></div></div>
             <div class="fstep" data-c="slate"><div class="rail"><div class="dot">2</div><div class="line"></div></div>
               <div class="card"><div class="who">Step 2 · Architect 生成 TechSpec（人工闸门）</div><p class="what">Architect 出技术方案 → 用户审。<b>拒绝则直接 return status="rejected" 结束 Workflow</b>；批准才进 Coder。</p><p class="note">Signal：<span class="k">resolve_tech_spec({approved, reason})</span>——唯一能提前终止主链路的拍板。</p></div></div>
-            <div class="fstep"><div class="rail"><div class="dot">3</div><div class="line"></div></div>
-              <div class="card"><div class="who">Step 3 · Coder 初次生成（round=0）<b style="color:var(--terra)"> · open-loop 基线</b></div><p class="what">派 <span class="k">run_coder_agent</span> 按 PRD+TechSpec 子集<b>一次性全量生成</b>代码，产物写 Blackboard，NATS 只传指针 + 沙箱结果 + PR 链接。<b>无人工闸门，直接进 Review 环</b>。</p><p class="note">这是 legacy open-loop：一把梭生成、不在沙箱里增量纠偏。当前主链路已换成<a href="coder.html" style="color:var(--clay)">闭环 Coder</a> 的读→改→跑测→纠偏。</p></div></div>
-            <div class="fstep"><div class="rail"><div class="dot">4</div><div class="line"></div></div>
-              <div class="card"><div class="who">Step 4 · Review 循环（≤3 轮，硬闸）<b style="color:var(--terra)"> · open-loop 基线</b></div><p class="what"><span class="k">run_reviewer_agent</span>（Reflexion）裁决 → 通过即 break；未通过且还有轮次则派 <span class="k">run_coder_fix_agent</span> 修，再回 Reviewer。这是唯一的 <b>Agent↔Agent</b> 环（无人参与），图版 II-a 展开。</p><p class="note">legacy 路径：Reviewer 只看 Coder 报的结果、不独立重跑。当前主链路换成<a href="reviewer.html" style="color:var(--clay)">对抗式 Reviewer</a>（干净容器独立重跑）+ 每片独立闭环 loop。</p></div></div>
+            <div class="fstep"><div class="rail"><div class="dot">3′</div><div class="line"></div></div>
+              <div class="card"><div class="who">Step 3′ · Planner 切片规划（替换 legacy Coder 初次生成）</div><p class="what">派 <span class="k">run_planner</span>（standalone 库、非 NATS agent、自包含 activity）把 PRD+TechSpec 切成带依赖图的 Slice DAG，发 <span class="k">planner_started / planner_done</span> 事件点亮前端并带上切片列表。<b>run_planner 无 task_id</b>——幂等去重只对 JetStream 派发的 agent task 需要。</p></div></div>
+            <div class="fstep" data-c="slate"><div class="rail"><div class="dot">P</div><div class="line"></div></div>
+              <div class="card"><div class="who">resolve_plan · 切片计划人工闸（仅 status=="needs_human" 进入）</div><p class="what">Planner 遇依赖环 / 歧义切片时置 <span class="k">status="needs_human"</span>，挂起等用户审。<b>拒绝则直接 return status="rejected" 结束 Workflow</b>；批准（或本就 status=="ok"、跳过此闸）才进编排。</p><p class="note">Signal：<span class="k">resolve_plan(approved, reason)</span>——第 8 个 Signal、第 4 处人机拍板。</p></div></div>
+            <div class="fstep"><div class="rail"><div class="dot">6</div><div class="line"></div></div>
+              <div class="card"><div class="who">Step 6 · child OrchestratorWorkflow 波次并行闭环</div><p class="what"><span class="k">execute_child_workflow</span>（队列 <span class="k">orchestrator-wf</span>、id 用 <span class="k">uuid5(wf,"orchestrator-child")</span>）把校验过的 Slice DAG 交给 ② 编排器：波次 fan-out → 并行闭环 loop → <a href="merge.html" style="color:var(--clay)">Merge</a> 归并 → finalize。<b>spec-threading</b>：per-run 的 prd/tech_spec/model 经 payload 透传进 child，让每个 run 用自己的 spec 生成代码。</p><p class="note">child 不知父 id，靠注入 <span class="k">event_workflow_id</span> 把闭环段事件路由回本 workflow 的 SSE 频道。返回 <span class="k">FinalizeResult</span>→completed / <span class="k">RunAborted</span>→failed。</p></div></div>
             <div class="fstep" data-c="sage"><div class="rail"><div class="dot">✦</div></div>
-              <div class="card"><div class="who">Step 5 · 写情景记忆（fire-and-forget）</div><p class="what">全跑完后，把整条 workflow 产物蒸馏成 3–5 句摘要，写 <span class="k">agent_memory(episodic, role=workflow)</span>，留给未来的 Coder 检索。同样 try/except 兜底。</p></div></div>
+              <div class="card"><div class="who">Step 7 · 写情景记忆（fire-and-forget）+ 终态收口</div><p class="what">把整条 workflow 蒸馏成摘要写 <span class="k">agent_memory(episodic, role=workflow)</span>（<span class="k">reviewer_approved=False / review_rounds=0</span> 闭环安全默认，legacy Review 已摘）。<b>RunAborted 时父 workflow 兜底补发 FINALIZED status="aborted"</b>（正常收口由 child 自发 enriched finalized）——ADR-0015 + #133 终态持久化。</p></div></div>
           </div>
         </div>
       </div>
-      <p class="plate-cap col center"><b>怎么读：</b>竖着一路往下是主时间线。三个<b>蓝点</b>（R/0/1/2）是「等人」的地方——Workflow 在此挂起等 Signal；两个<b>绿星 ✦</b>是「悄悄写记忆」的旁支，失败也不影响主交付。注意三个循环的上限性质不同：打磨是<b>软上限（提醒不砍）</b>、澄清与 Review 是<b>硬闸（到顶 break）</b>、PRD 修订<b>无上限</b>——上限该软该硬，取决于「停止权该归谁」。</p>
+      <p class="plate-cap col center"><b>怎么读：</b>竖着一路往下是主时间线。<b>蓝点</b>（R/0/1/2/P）是「等人」的地方——Workflow 在此挂起等 Signal（P 仅在 Planner 报 needs_human 时才出现）；两个<b>绿星 ✦</b>是「悄悄写记忆」的旁支，失败也不影响主交付。注意几个循环的上限性质不同：打磨是<b>软上限（提醒不砍）</b>、澄清是<b>硬闸（到顶 break）</b>、PRD 修订<b>无上限</b>——上限该软该硬，取决于「停止权该归谁」。真正的编码不在本 workflow 直接派 Agent，而是下沉进 Step 6 的 child OrchestratorWorkflow。</p>
 
-      <div class="col"><h3>七个 Signal：人在哪几处能插手</h3>
-        <p class="body">Workflow 靠 <span class="k">@workflow.signal</span> 装的方法接收外部输入——本质是「往运行中的 Workflow 里推一个值 + 唤醒它」。每个 Signal 只改一个实例字段，配一个 <span class="k">wait_condition</span> 醒来判断。七个 Signal 覆盖三处人机回环 + 一处终止拍板：</p>
+      <div class="col"><h3>八个 Signal：人在哪几处能插手</h3>
+        <p class="body">Workflow 靠 <span class="k">@workflow.signal</span> 装的方法接收外部输入——本质是「往运行中的 Workflow 里推一个值 + 唤醒它」。每个 Signal 只改一个实例字段，配一个 <span class="k">wait_condition</span> 醒来判断。八个 Signal 覆盖五处人机拍板点（refine / 澄清 / PRD / TechSpec / Plan）：</p>
       </div>
       <div class="plate">
-        <div class="plate-head"><span class="t">图版 <b>I-b</b> · Signal 全表 · 人机回环的七个拍板点</span><span class="n">STATIC · signal map</span></div>
+        <div class="plate-head"><span class="t">图版 <b>I-b</b> · Signal 全表 · 人机回环的八个拍板点</span><span class="n">STATIC · signal map</span></div>
         <div class="plate-body">
           <table class="cmp">
             <thead><tr><th>Signal</th><th>所在循环 · 触发时机</th><th>效果（改哪个字段 / 唤醒谁）</th></tr></thead>
@@ -397,52 +399,53 @@
               <tr><th>approve_prd</th><td class="a">PRD 修订 · 用户满意 PRD</td><td><span class="k">_prd_approved=True</span> → break，PRD 定稿进蒸馏 + Architect</td></tr>
               <tr><th>request_prd_revision</th><td class="a">PRD 修订 · 用户给修改意见</td><td><span class="k">_prd_feedback=feedback</span> → 反馈入 history，PM 重出一版</td></tr>
               <tr><th>resolve_tech_spec</th><td class="a">TechSpec 审批 · 用户批准 / 拒绝方案</td><td><span class="k">_tech_spec_resolution=data</span>；<span class="k">approved=False</span> → 整个 Workflow return rejected</td></tr>
+              <tr><th>resolve_plan</th><td class="a">切片计划审批 · 批准 / 拒绝 Planner 切片（仅 needs_human）</td><td><span class="k">_plan_resolution=PlanResolutionInput(approved, reason)</span>；<span class="k">approved=False</span> → Workflow return rejected</td></tr>
             </tbody>
           </table>
         </div>
       </div>
-      <p class="plate-cap col center"><b>关键切分：</b>Signal 只负责「送值 + 唤醒」，真正的「醒来后干什么」全在 Workflow 主体的 <span class="k">wait_condition</span> 之后。这样把「外部何时来」与「来了怎么处理」解耦——Signal handler 保持极简（一行赋值），逻辑集中在确定性主线里，重放才不会错位。七个里只有 <b>resolve_tech_spec 的拒绝</b>能提前终止主链路；其余都是「继续推进」。</p>
+      <p class="plate-cap col center"><b>关键切分：</b>Signal 只负责「送值 + 唤醒」，真正的「醒来后干什么」全在 Workflow 主体的 <span class="k">wait_condition</span> 之后。这样把「外部何时来」与「来了怎么处理」解耦——Signal handler 保持极简（一行赋值），逻辑集中在确定性主线里，重放才不会错位。八个里只有 <b>resolve_tech_spec 与 resolve_plan 的拒绝</b>能提前终止主链路（return rejected）；其余都是「继续推进」。</p>
     </section>
 
     <!-- ===== II 动态流程 ===== -->
     <section id="dynamic">
       <div class="col">
         <div class="eyebrow">图版 II · 动态流程</div>
-        <h2>放大两处：Review 循环怎么收敛，一次派活怎么往返</h2>
-        <p class="sub">静态图看的是「有哪些步」，动态图看的是「步与步之间怎么转」。挑两处最能体现编排精髓的：Agent↔Agent 的 Review 环，和一次 Activity 派活的完整往返（ADR-0011 的核心）。</p>
+        <h2>放大两处：闭环执行怎么挂进来，一次上游派活怎么往返</h2>
+        <p class="sub">静态图看的是「有哪些步」，动态图看的是「步与步之间怎么转」。挑两处最能体现编排精髓的：把闭环交给 child OrchestratorWorkflow 的交接（spec-threading + 事件回流），和一次上游 Activity 派活的完整往返（ADR-0011 的核心）。</p>
       </div>
 
       <div class="plate">
-        <div class="plate-head"><span class="t">图版 <b>II-a</b> · Review 循环 · Coder ↔ Reviewer（≤3 轮）<b style="color:var(--terra)"> · open-loop 基线</b></span><span class="n">DYNAMIC · legacy loop</span></div>
+        <div class="plate-head"><span class="t">图版 <b>II-a</b> · child OrchestratorWorkflow 交接 · spec-threading + 事件回流</span><span class="n">DYNAMIC · child handoff</span></div>
         <div class="plate-body">
           <div class="flow">
-            <div class="fstep" data-c="slate"><div class="rail"><div class="dot">1</div><div class="line"></div></div>
-              <div class="card"><div class="who">for review_round in range(3)</div><p class="what">发 <span class="k">review_started</span> 事件点亮前端导轨，派 <b>Reviewer</b>：task_id = <span class="k">uuid5(wf, f"reviewer-round-{r}")</span>，带上 PRD/TechSpec 子集 + <span class="k">coder_round</span> 指针 + 上轮沙箱结果。</p></div></div>
-            <div class="fstep" data-c="slate"><div class="rail"><div class="dot">2</div><div class="line"></div></div>
-              <div class="card"><div class="who">Reviewer 裁决 → review_completed</div><p class="what">拿回 <span class="k">approved / has_critical / overall_score</span>（审查意见本体在 Blackboard）。<b>approved==True → break</b>，整个 Review 环结束。</p></div></div>
-            <div class="fstep"><div class="rail"><div class="dot">3</div><div class="line"></div></div>
-              <div class="card"><div class="who">未通过 &amp; review_round &lt; 2 → 派 Coder fix</div><p class="what">fix_round = r+1，task_id = <span class="k">uuid5(wf, f"coder-fix-round-{fix_round}")</span>。只传 Blackboard 指针（<span class="k">prev_coder_round</span> / <span class="k">prev_reviewer_round</span>），Coder 自己去板上读上轮代码 + 审查意见。</p><p class="note">最后一轮（r==2）即使未通过也<b>不再修</b>——循环自然收尾，带着「未通过」结论落地。</p></div></div>
-            <div class="fstep" data-c="slate"><div class="rail"><div class="dot">↺</div></div>
-              <div class="card"><div class="who">coder_completed → 回到步 1（下一轮 Reviewer）</div><p class="what">fix 完更新 <span class="k">coder_result</span>（新 round + 新沙箱结果），循环变量前进，下一轮 Reviewer 拿新的 coder_round 指针重审。<b>最多三次 Reviewer、两次 fix</b>。</p></div></div>
+            <div class="fstep"><div class="rail"><div class="dot">1</div><div class="line"></div></div>
+              <div class="card"><div class="who">父 · execute_child_workflow(OrchestratorWorkflow.run, …)</div><p class="what">闸门通过后，父 workflow 把校验过的 <span class="k">planner_result.plan</span>（Slice DAG）打包成 <span class="k">OrchestratorWorkflowInput</span>，child id 用 <span class="k">uuid5(wf,"orchestrator-child")</span>（禁 uuid4，守确定性），投到控制平面队列 <span class="k">orchestrator-wf</span>。</p></div></div>
+            <div class="fstep" data-c="ochre"><div class="rail"><div class="dot">2</div><div class="line"></div></div>
+              <div class="card"><div class="who">spec-threading · per-run 的 prd/tech_spec/model 随 payload 透传</div><p class="what">把本次 run 的 <span class="k">prd / tech_spec / closed_loop_model</span> 塞进 <span class="k">OrchestratorWorkflowInput</span> → child <span class="k">ProvisionRequest</span> → <span class="k">RunContext</span>，供闭环 Coder <b>现取</b>（而非 worker 启动时钉死）。保证每个用户 run 都用自己的 spec 生成代码。</p></div></div>
+            <div class="fstep" data-c="slate"><div class="rail"><div class="dot">3</div><div class="line"></div></div>
+              <div class="card"><div class="who">event_workflow_id · 闭环段事件回流父频道</div><p class="what">child 不知道父的 workflow_id，父把 <span class="k">event_workflow_id=input.workflow_id</span> 注入 payload；闭环段事件（<span class="k">wave_started / slice_started / … / finalized</span>）据此路由回<b>本 workflow 的 SSE 频道</b>，前端一条流看到全程。</p></div></div>
+            <div class="fstep"><div class="rail"><div class="dot">4</div></div>
+              <div class="card"><div class="who">终态收口 · FinalizeResult / RunAborted</div><p class="what">child 返回 <span class="k">FinalizeResult</span>（成功收口，自发 enriched <span class="k">finalized</span> 含 prUrl/integration_branch）→ 父置 <b>completed</b>；返回 <span class="k">RunAborted</span>（脚手架失败/中止，从不进 Finalize 分支、不发 finalized）→ 父置 <b>failed</b> 并<b>兜底补发</b> FINALIZED status="aborted"。</p><p class="note">ADR-0015 + #133：终局事件的发出方职责单一——正常由 child 发、abort 由父兜底，同一终局语义不被父子各发一次。</p></div></div>
           </div>
         </div>
       </div>
-      <p class="plate-cap col center"><b>为什么这是唯一的无人环：</b>REFINE/澄清/PRD 三环都要等人 Signal；Review 环全程 Agent↔Agent、靠 <span class="k">reviewer_result.approved</span> 自动判断进退，不挂 <span class="k">wait_condition</span>。硬闸 3 轮是<b>止损</b>——防 Coder/Reviewer 互相拉扯无限烧钱。每轮 task_id 都带 round 后缀，保证「重放时同一轮拿同一 id、命中同一份幂等缓存」。</p>
+      <p class="plate-cap col center"><b>为什么闭环是 child workflow 而非平行链：</b>把编排下沉进独立 child，父只管「交接 DAG + 收终态」，child 内部的波次并行 / loop / 归并各自可持久化、可重放、可独立重投。spec-threading 让 per-run 配置随 payload 走，避免 worker 级全局状态；<span class="k">event_workflow_id</span> 把父子两层事件缝成前端的一条 SSE 流。</p>
 
       <div class="plate">
         <div class="plate-head"><span class="t">图版 <b>II-b</b> · 一次 Activity 派活的完整往返（ADR-0011）</span><span class="n">DYNAMIC · dispatch round-trip</span></div>
         <div class="plate-body">
           <div class="flow">
             <div class="fstep"><div class="rail"><div class="dot">1</div><div class="line"></div></div>
-              <div class="card"><div class="who">Workflow · execute_activity(run_coder_agent, …)</div><p class="what">Workflow 先算出确定性 <span class="k">task_id = uuid5(wf, "coder-round-0")</span>，连同 PRD/TechSpec 子集打包成 <span class="k">RunCoderAgentInput</span>，调 Activity。Workflow 只管「派」，绝不自己碰 NATS。</p></div></div>
+              <div class="card"><div class="who">Workflow · execute_activity(run_architect_agent, …)</div><p class="what">Workflow 先算出确定性 <span class="k">task_id = uuid5(wf, "architect")</span>，连同 PRD 打包成 <span class="k">RunArchitectAgentInput</span>，调 Activity。Workflow 只管「派」，绝不自己碰 NATS。</p></div></div>
             <div class="fstep" data-c="sage"><div class="rail"><div class="dot">2</div><div class="line"></div></div>
-              <div class="card"><div class="who">Activity · _dispatch_agent_task（统一派发）</div><p class="what">把本次 Activity 的 <span class="k">task_token</span>（base64）塞进 payload → <span class="k">js.publish("agent.coder.task")</span> 到 JetStream durable stream（拿到 PubAck 才算持久化）→ 调 <span class="k">raise_complete_async()</span>。</p><p class="note">Activity 到此<b>立即返回、释放 worker 线程</b>——不在这里干等 Coder 跑 10 分钟。结果「稍后由外部交付」。</p></div></div>
+              <div class="card"><div class="who">Activity · _dispatch_agent_task（统一派发）</div><p class="what">把本次 Activity 的 <span class="k">task_token</span>（base64）塞进 payload → <span class="k">js.publish("agent.architect.task")</span> 到 JetStream durable stream（拿到 PubAck 才算持久化）→ 调 <span class="k">raise_complete_async()</span>。</p><p class="note">Activity 到此<b>立即返回、释放 worker 线程</b>——不在这里干等 Architect 跑几分钟。结果「稍后由外部交付」。</p></div></div>
             <div class="fstep" data-c="ochre"><div class="rail"><div class="dot">3</div><div class="line"></div></div>
-              <div class="card"><div class="who">Coder worker · JetStream pull 消费</div><p class="what">Coder worker 从 durable consumer 拉到任务，<b>先按 task_id 查 <span class="k">agent_task_results</span> 表幂等</b>：命中即用缓存结果、跳过重烧 LLM；否则跑 LLM + 沙箱、写 Blackboard、落幂等表。</p></div></div>
+              <div class="card"><div class="who">Architect worker · JetStream pull 消费</div><p class="what">Architect worker 从 durable consumer 拉到任务，<b>先按 task_id 查 <span class="k">agent_task_results</span> 表幂等</b>：命中即用缓存结果、跳过重烧 LLM；否则跑 LLM 产 TechSpec、落幂等表。</p></div></div>
             <div class="fstep" data-c="sage"><div class="rail"><div class="dot">4</div><div class="line"></div></div>
-              <div class="card"><div class="who">Coder worker · handle.complete(result)</div><p class="what">用 payload 里的 token 构造 Temporal handle，调 <span class="k">complete(RunCoderAgentResult)</span> 把结果写进 <b>Event History</b>（响应腿也持久化、有 ack）。写成功后才 ack JetStream；崩了未 ack → 重投到另一 worker。</p></div></div>
+              <div class="card"><div class="who">Architect worker · handle.complete(result)</div><p class="what">用 payload 里的 token 构造 Temporal handle，调 <span class="k">complete(RunArchitectAgentResult)</span> 把结果写进 <b>Event History</b>（响应腿也持久化、有 ack）。写成功后才 ack JetStream；崩了未 ack → 重投到另一 worker。</p></div></div>
             <div class="fstep"><div class="rail"><div class="dot">5</div></div>
-              <div class="card"><div class="who">Workflow · 拿到结果续跑</div><p class="what">那个挂起的 Activity 被外部 complete，Workflow 收到 <span class="k">RunCoderAgentResult</span>，发 <span class="k">coder_completed</span> 事件，进 Review 环。整条链路<b>任务不丢、结果不丢、不重复烧 LLM</b>。</p></div></div>
+              <div class="card"><div class="who">Workflow · 拿到结果续跑</div><p class="what">那个挂起的 Activity 被外部 complete，Workflow 收到 <span class="k">RunArchitectAgentResult</span>，发 <span class="k">tech_spec_pending_approval</span> 事件、挂起等 <span class="k">resolve_tech_spec</span>，批准后进 Planner。整条链路<b>任务不丢、结果不丢、不重复烧 LLM</b>。</p></div></div>
           </div>
         </div>
       </div>
@@ -454,10 +457,10 @@
       <div class="col">
         <div class="eyebrow">端到端 · 走一遍</div>
         <h2>从「批准 PRD」到「写下情景记忆」的一条真实轨迹</h2>
-        <p class="sub">跟着一个 workflow 实例走完主链路后半段：定稿 → 蒸馏 → 技术方案 → 写码 → 一轮返修 → 通过 → 记忆。留意每一步的 uuid5 task_id 与 Signal payload——它们就是「确定性」和「人机回环」在真实数据里的样子。</p>
+        <p class="sub">跟着一个 workflow 实例走完主链路后半段：定稿 → 蒸馏 → 技术方案 → Planner 切片 → child 编排闭环 → finalize → 记忆。留意每一步的 uuid5 task_id 与 Signal payload——它们就是「确定性」和「人机回环」在真实数据里的样子。</p>
       </div>
       <div class="e2e">
-        <div class="e2e-head"><span class="tag">场景 · workflow_id = 7f3a…c091 · feature「报销审批」</span><h3>用户批准 PRD 后，Workflow 自动跑到底、中途返修一次</h3></div>
+        <div class="e2e-head"><span class="tag">场景 · workflow_id = 7f3a…c091 · feature「报销审批」</span><h3>用户批准 PRD 后，Workflow 一路跑到 child 编排闭环并收口</h3></div>
         <div class="e2e-body">
           <div class="beat"><div class="when">T0 · Signal</div><div><p class="what">用户在 PRD 第 1 版就满意，前端发 <b>approve_prd</b>。挂起在 <span class="k">wait_condition</span> 的 Workflow 醒来，<span class="k">_prd_approved=True</span> → break 出 PRD 修订环。</p>
             <pre><span class="c"># Step 1 while 循环内</span>
@@ -477,26 +480,26 @@ except Exception: workflow.logger.warning(<span class="g">"workflow.sop_distill_
 resolve_tech_spec(<span class="y">{"approved": true, "reason": null}</span>)
 <span class="c"># 若 approved=false → return FeatureWorkflowResult(status="rejected")</span></pre></div></div>
 
-          <div class="beat"><div class="when">T3 · Coder round 0</div><div><p class="what">Step 3 派 Coder 初次生成。走图版 II-b 的往返：JetStream 投递 + async completion。产物进 Blackboard，NATS 只回沙箱结果 + PR 链接。</p>
-            <pre>coder_task_id = <span class="b">uuid5</span>(wf, <span class="g">"coder-round-0"</span>)
-<span class="c"># coder_completed: sandboxPassed=true, prUrl="https://github.com/…/pull/42"</span></pre></div></div>
+          <div class="beat"><div class="when">T3 · Planner</div><div><p class="what">Step 3′ 派 <b>run_planner</b>（自包含 activity、无 task_id）把 PRD+TechSpec 切成 Slice DAG，发 <span class="k">planner_done</span> 带切片列表。本例 <span class="k">status=="ok"</span>——无依赖歧义，<b>跳过 resolve_plan 人工闸</b>，直接进编排。</p>
+            <pre>planner_result = <span class="b">run_planner</span>(prd, tech_spec)  <span class="c"># 无 task_id</span>
+<span class="c"># planner_done: sliceCount=4, status="ok" → 无需 resolve_plan</span></pre></div></div>
 
-          <div class="beat"><div class="when">T4 · Review r0</div><div><p class="what">Step 4 环第 0 轮。Reviewer 挑出一个 critical，<span class="k">approved=false</span>。因 r0 &lt; 2，派 Coder fix（fix_round=1）。</p>
-            <pre>reviewer_task_id = <span class="b">uuid5</span>(wf, <span class="g">"reviewer-round-0"</span>)
-<span class="c"># review_completed: approved=false, hasCritical=true, overallScore=0.62</span>
-fix_task_id = <span class="b">uuid5</span>(wf, <span class="g">"coder-fix-round-1"</span>)  <span class="c"># 只传 Blackboard 指针</span>
-RunCoderFixAgentInput(prev_coder_round=<span class="y">0</span>, prev_reviewer_round=<span class="y">0</span>)</pre></div></div>
+          <div class="beat"><div class="when">T4 · child 编排</div><div><p class="what">Step 6 <b>execute_child_workflow(OrchestratorWorkflow)</b>。<b>spec-threading</b> 透传本 run 的 prd/tech_spec/model；<span class="k">event_workflow_id</span> 把闭环段事件（wave_started/slice_started/…）路由回本 SSE 频道，前端一条流看到波次并行全程。</p>
+            <pre>child_id = <span class="b">uuid5</span>(wf, <span class="g">"orchestrator-child"</span>)  <span class="c"># 队列 orchestrator-wf</span>
+finalize = <span class="b">execute_child_workflow</span>(OrchestratorWorkflow.run,
+  OrchestratorWorkflowInput(prd=…, tech_spec=…,
+    model=settings.closed_loop_model, event_workflow_id=wf))</pre></div></div>
 
-          <div class="beat"><div class="when">T5 · Review r1</div><div><p class="what">环第 1 轮。Coder 已修，Reviewer 拿<b>新的 coder_round 指针</b>重审 → <span class="k">approved=true</span> → break，Review 环收敛（用了 2 次 Reviewer、1 次 fix）。</p>
-            <pre>reviewer_task_id = <span class="b">uuid5</span>(wf, <span class="g">"reviewer-round-1"</span>)
-<span class="c"># review_completed: approved=true, overallScore=0.88 → break</span></pre></div></div>
+          <div class="beat"><div class="when">T5 · finalize 收口</div><div><p class="what">child 返回 <span class="k">FinalizeResult</span> → 父置 <b>completed</b>；child 已自发 enriched <span class="k">finalized</span>（含 prUrl/integration_branch）路由回本频道，父不重发。若为 <span class="k">RunAborted</span> 则父置 failed + 兜底补发 FINALIZED status="aborted"。</p>
+            <pre><span class="b">if</span> isinstance(finalize, FinalizeResult): status=<span class="g">"completed"</span>
+<span class="b">else</span>: status=<span class="g">"failed"</span>  <span class="c"># RunAborted → 父兜底补发 FINALIZED aborted</span></pre></div></div>
 
-          <div class="beat"><div class="when">T6 · 情景记忆</div><div><p class="what">Step 5 <b>fire-and-forget</b>：把整条 workflow 蒸馏成摘要，写 <span class="k">agent_memory(episodic, role=workflow)</span>，留给未来相似任务的 Coder 检索。最后发 <span class="k">workflow_completed</span> 收尾。</p>
+          <div class="beat"><div class="when">T6 · 情景记忆</div><div><p class="what">Step 7 <b>fire-and-forget</b>：把整条 workflow 蒸馏成摘要，写 <span class="k">agent_memory(episodic, role=workflow)</span>，留给未来相似任务的 Coder 检索。legacy Review 已摘，写入用闭环安全默认。</p>
             <pre>try: await execute_activity(write_episodic_memory,
        WriteEpisodicMemoryInput(prd_title=<span class="g">"报销审批"</span>,
-         reviewer_approved=<span class="y">true</span>, review_rounds=<span class="y">2</span>))
+         reviewer_approved=<span class="y">false</span>, review_rounds=<span class="y">0</span>))  <span class="c"># 闭环安全默认</span>
 except Exception: workflow.logger.warning(<span class="g">"workflow.memory_write_failed"</span>)
-<span class="c"># FeatureWorkflowResult(status="completed", review_rounds=2)</span></pre>
+<span class="c"># FeatureWorkflowResult(status="completed")</span></pre>
             <p class="micro-note">整段轨迹里，每个 task_id 都由 <span class="k">uuid5(workflow_id, salt)</span> 算出——同一实例重放，每一步拿到<b>一模一样</b>的 id，命中同一份幂等缓存，绝不重烧 LLM。这就是「确定性」落到实处的样子。</p></div></div>
         </div>
       </div>
@@ -517,8 +520,9 @@ except Exception: workflow.logger.warning(<span class="g">"workflow.memory_write
           <pre><span class="c"># ✗ 错：每次重放都是新 id → 幂等表命中不了 → 重烧 LLM / 报错</span>
 task_id = str(uuid.uuid4())
 <span class="c"># ✓ 对：workflow_id 是种子，salt 定唯一 → 重放必得同一个 id</span>
-coder_task_id = str(uuid.uuid5(uuid.UUID(input.workflow_id), <span class="g">"coder-round-0"</span>))
-reviewer_task_id = str(uuid.uuid5(uuid.UUID(input.workflow_id), <span class="g">f"reviewer-round-{r}"</span>))</pre>
+architect_task_id = str(uuid.uuid5(uuid.UUID(input.workflow_id), <span class="g">"architect"</span>))
+prd_task_id = str(uuid.uuid5(uuid.UUID(input.workflow_id), <span class="g">f"pm-prd-round-{r}"</span>))
+child_id = str(uuid.uuid5(uuid.UUID(input.workflow_id), <span class="g">"orchestrator-child"</span>))</pre>
           <ul class="tight">
             <li class="body"><strong>salt 带上循环变量</strong>（<span class="k">round</span>）：同一实例的每一轮拿不同 id，但「同一轮」跨重放拿同一个 id——正好对上幂等缓存。</li>
             <li class="body">同理禁的还有 <span class="k">datetime.now()</span>（要用 <span class="k">workflow.now()</span>）、<span class="k">random</span>、直接 IO（httpx/nats/db）。所有非确定的东西全下沉进 <strong>Activity</strong>——Activity 的结果被记进历史，重放时取历史值，就「确定」了。</li>
@@ -537,7 +541,6 @@ reviewer_task_id = str(uuid.uuid5(uuid.UUID(input.workflow_id), <span class="g">
               <tr><th>需求打磨</th><td class="a">软上限 20（REFINE_SOFT_CAP）</td><td>到顶只置 <span class="k">nudge_converge=True</span> 让 PM 善意提醒，<b>不 break</b>。用户想聊多久聊多久——探索需求的停止权在人。</td></tr>
               <tr><th>PM 澄清</th><td class="a">硬闸 3（MAX_CLARIFICATION_ROUNDS）</td><td>澄清是「补齐信息」，问 3 轮还不清就该往下走了；<span class="k">for range(3)</span> 到顶自然 break。</td></tr>
               <tr><th>PRD 修订</th><td class="a">无上限（while True）</td><td>「PRD 满不满意」纯主观，只有用户 approve 才停——系统无权替他判「够好了」。</td></tr>
-              <tr><th>Review</th><td class="a">硬闸 3（MAX_REVIEW_ROUNDS）</td><td>Agent↔Agent 无人环，必须<b>止损</b>——防 Coder/Reviewer 互相拉扯无限烧钱。</td></tr>
             </tbody>
           </table>
           <pre><span class="c"># 软上限：提醒但不砍，wait_condition 仍等用户下一步</span>
@@ -570,7 +573,7 @@ except Exception:
       <details class="deep" data-tag="ADR-0011">
         <summary>④ _dispatch_agent_task + async completion：任务不丢、结果不丢、不重烧</summary>
         <div class="inner">
-          <p class="body">所有派 Agent 的 Activity（<span class="k">run_pm_agent</span> / <span class="k">run_coder_agent</span> / …）都收敛到一个 <span class="k">_dispatch_agent_task</span>。它做三件事：塞 token、publish 到 JetStream、<span class="k">raise_complete_async()</span>。这是 ADR-0011 的核心——从 Core NATS request-reply（at-most-once、会丢）升级到<strong>持久化队列 + 异步完成</strong>。</p>
+          <p class="body">所有派 Agent 的 Activity（<span class="k">run_pm_agent</span> / <span class="k">run_architect_agent</span> / …）都收敛到一个 <span class="k">_dispatch_agent_task</span>。它做三件事：塞 token、publish 到 JetStream、<span class="k">raise_complete_async()</span>。这是 ADR-0011 的核心——从 Core NATS request-reply（at-most-once、会丢）升级到<strong>持久化队列 + 异步完成</strong>。</p>
           <pre>async def _dispatch_agent_task(subject, payload):
     payload[ACTIVITY_TOKEN_KEY] = base64(activity.info().task_token)
     js = (await nats.connect(...)).jetstream()
@@ -632,14 +635,14 @@ if input.mode == <span class="g">"refine"</span>:
             <tr><td>PrdOutput schema 未嵌套化</td><td>user_stories 内联 AC 的重构未做</td><td>登记为开放技术债，见根 CONTEXT.md</td></tr>
           </tbody>
         </table>
-        <p class="body" style="margin-top:1.6rem">正在发生的更大变化：Atelier 主链路正从这套 <strong>Temporal 编排 + NATS/Blackboard</strong> 迁向 <strong>闭环多 Agent 管线（agentic-closed-loop）</strong>——并行 Orchestrator 已完整落地（#90–#96），下一步是 <strong>Temporal / Blackboard 逐步退役</strong>。本页记录的是这套 <strong>legacy 编排器</strong>的样子——其 open-loop 编码阶段（Step 3/4）是被闭环取代的 <strong>A/B 对照基线</strong>；当前主链路的编码见闭环模块（<a href="planner.html" style="color:var(--clay)">Planner</a> / <a href="orchestrator.html" style="color:var(--clay)">Orchestrator</a> / <a href="merge.html" style="color:var(--clay)">Merge</a>）。</p>
+        <p class="body" style="margin-top:1.6rem">已发生的大变化（ADR-0015 cutover）：<span class="k">FeatureWorkflow</span> 自身已重写——legacy 的 <strong>Step 3 Coder 全量生成 + Step 4 Review 循环</strong>从 <span class="k">run()</span> 里就地摘除，换成 <strong>Step 3′ Planner → resolve_plan 人工闸 → Step 6 child OrchestratorWorkflow</strong>（闭环编码就跑在本 workflow 内部，见 <a href="planner.html" style="color:var(--clay)">Planner</a> / <a href="orchestrator.html" style="color:var(--clay)">Orchestrator</a> / <a href="merge.html" style="color:var(--clay)">Merge</a>）。legacy <span class="k">run_coder_agent / run_reviewer_agent</span> activity 与 Blackboard 在<strong>退役路上</strong>，保留作 A/B 对照基线（ADR-0013 闸门前不删）。</p>
         <div class="callout"><span class="l">一句话总结</span>FeatureWorkflow 的全部设计，都是在回答一个问题：<strong>「一段又长、又要等人、又会崩的协作流程，怎么写得可靠？」</strong>答案是三件事——确定性守住重放、Signal 接住人、fire-and-forget 兜住旁支。守住这三条，其余都是细节。</p></div>
       </div>
     </section>
 
     <div class="footnav">
       <a href="overview.html" id="foot-overview">← 返回总览</a>
-      <span class="meta">Atelier · 工作流编排 · 确定性编排 / 7 Signal / uuid5 / ADR-0011</span>
+      <span class="meta">Atelier · 工作流编排 · 确定性编排 / 8 Signal / uuid5 / ADR-0011</span>
       <a href="#intro-top">回到顶部 ↑</a>
     </div>
 

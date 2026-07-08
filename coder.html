@@ -369,7 +369,10 @@
                   <div class="node cap"><span class="lbl">coder/agentic_coder.py</span><span class="nm">AgenticCoder</span><span class="ds">loop 驱动 / 上下文裁剪 / 终止门 / seed prompt / best-so-far 装配</span></div>
                   <div class="node cap"><span class="lbl">coder/tools.py</span><span class="nm">工具装配 + 语法闸门</span><span class="ds">bash + read/write/edit/glob/grep，全走容器 exec；write/edit 内含 #57 <span class="k">ast.parse</span> 闸门</span></div>
                 </div>
-                <div class="node cap" style="margin-top:1rem"><span class="lbl">coder/convergence.py</span><span class="nm">#57 收敛护栏</span><span class="ds">测试信号解析（importable/passed）+ BestSoFarTracker 快照/回退 + on_step 观察者装配 + has_green_test_run（终止门判据）</span></div>
+                <div class="lyr2" style="margin-top:1rem">
+                  <div class="node cap"><span class="lbl">coder/convergence.py</span><span class="nm">#57 收敛护栏</span><span class="ds">测试信号解析（importable/passed）+ BestSoFarTracker 快照/回退 + on_step 观察者装配 + has_green_test_run（终止门判据）</span></div>
+                  <div class="node cap"><span class="lbl">coder/stack.py</span><span class="nm">detect_stack</span><span class="ds">按特征文件（pyproject.toml / package.json）嗅探技术栈的纯逻辑叶子。<b>随每个 Coder fork 自带</b>（不在模块根共享基座）。</span></div>
+                </div>
               </div>
             </div>
             <div class="flowbar"><div class="arr"><span class="a r"><span class="v">▼</span> 驱动 ReAct loop</span><span class="a w">finish_guard / on_step 钩子 <span class="v">▼</span></span></div></div>
@@ -387,7 +390,7 @@
               <div class="band">
                 <div class="lyr2">
                   <div class="node write"><span class="lbl">sandbox.py</span><span class="nm">LiveSandbox + ExecResult</span><span class="ds">长存活容器（sleep infinity）+ bind-mount workspace；所有动作走 docker exec。Reviewer 干净容器重跑复用它。</span></div>
-                  <div class="node write"><span class="lbl">provisioning.py / pagination.py / stack.py</span><span class="nm">查表 + 纯逻辑叶子</span><span class="ds">按 tech_stack 选镜像 + 预置工具；翻页截断 paginate_text；特征文件嗅探 detect_stack。</span></div>
+                  <div class="node write"><span class="lbl">provisioning.py / pagination.py</span><span class="nm">查表 + 纯逻辑叶子</span><span class="ds">按 tech_stack 选镜像 + 预置工具（<span class="k">resolve_image</span>）；翻页截断 paginate_text。</span></div>
                 </div>
               </div>
             </div>
@@ -653,7 +656,7 @@ def edit_context(messages, keep_recent_tool_msgs=4, min_chars=600):
               <tr><th>成本</th><td class="a">一次 fork + 剥 PR 叙述</td><td class="b">省一次拷贝</td></tr>
             </tbody>
           </table>
-          <p class="body">闭环管线在赢下盲评 A/B（ADR-0013 闸门）、替换生产链路前，legacy <span class="k">coder-agent</span> / <span class="k">reviewer-agent</span> <strong>原样保留</strong>做生产链路 + A/B baseline。两套范式并存、物理隔离——这也是为什么 <span class="k">react_kernel</span> / <span class="k">sandbox</span> / <span class="k">provisioning</span> / <span class="k">pagination</span> 提到<strong>模块根</strong>：它们是 Coder 与 Reviewer 共用、单向被依赖的叶子，谁都不反向依赖谁。</p>
+          <p class="body">ADR-0013 的 A/B 闸门（held-out 通过率闭环持续更高）已达成，<span class="k">ADR-0015</span>（2026-07-06 Accepted）随即完成 <strong>cutover</strong>：<span class="k">/features</span> 的 Step 3/4 现走 Planner→child <span class="k">OrchestratorWorkflow</span>（闭环），闭环即<strong>活跃生产链路</strong>；legacy <span class="k">coder-agent</span> / <span class="k">reviewer-agent</span> 不再被调用、<strong>原样保留</strong>只作 A/B baseline + 可读性对照。两套范式并存、物理隔离——这也是为什么 <span class="k">react_kernel</span> / <span class="k">sandbox</span> / <span class="k">provisioning</span> / <span class="k">pagination</span> 提到<strong>模块根</strong>：它们是 Coder 与 Reviewer 共用、单向被依赖的叶子，谁都不反向依赖谁。</p>
           <div class="callout"><span class="l">承重不变量</span>依赖方向 = 实验包（agentic-closed-loop）→ 只依赖 stdlib + langchain + structlog + pydantic + docker + <span class="k">atelier_shared.*</span> + 自身，<strong>绝不反向</strong>依赖生产包。这条被 ADR-0012 钉死，是「先证后推、不替换生产链路」纪律的物理保证。</div>
         </div>
       </details>
@@ -684,14 +687,14 @@ def edit_context(messages, keep_recent_tool_msgs=4, min_chars=600):
         <table class="limits">
           <thead><tr><th>限制</th><th>影响</th><th>当前状态 / 缓解</th></tr></thead>
           <tbody>
-            <tr><td>盲评 A/B 尚未把 ADR-0013 翻 Accepted</td><td>不替换 legacy 生产链路</td><td>依赖 eval-harness，推后（硬闸门）</td></tr>
+            <tr><td>ADR-0013 闸门已达 → ADR-0015 cutover 已完成（已解除）</td><td>闭环即生产链路，legacy 转 baseline</td><td>/features Step3/4 走 Planner→child Orchestrator（2026-07-06）</td></tr>
             <tr><td>calc 类难推理题高方差</td><td>弱模型闭环不稳（vs 开环稳态 0.92）</td><td>拆解为 capability×方差，非 bug、非解不出</td></tr>
             <tr><td>self-test 覆盖不足（次要）</td><td>自测过但 held-out 挂</td><td>level-1 对抗 Reviewer 独立重跑兜底</td></tr>
             <tr><td>语法闸门只覆盖 Python</td><td>其它语言无静态闸门</td><td>宿主 py3.13 是容器 py3.11 超集，不误伤；其它栈照常放行</td></tr>
-            <tr><td>standalone，未接编排</td><td>无并行 / worktree / Merge</td><td>level-0 先证单 agent 能干完一件事</td></tr>
+            <tr><td>coder harness 本身仍是 standalone 入口</td><td>run_closed_loop_task 不接 NATS/Temporal</td><td>已由上层 child OrchestratorWorkflow 接入 /features（ADR-0015）</td></tr>
           </tbody>
         </table>
-        <p class="body" style="margin-top:1.6rem">更远的未来：workspace（<span class="k">git init</span> 目录）是「worktree per issue」的雏形，下游愿景 <strong>Planner 切片 → 并行多 Coder → 对抗 Reviewer → Merge</strong> 全建立在「单 agent 能在一个真实工作区干完一件事」这个能力上——所以它先做。brownfield（clone 既有仓库）只需把 workspace 初始化从「空 + git init」换成「检出」，复用同一抽象。</p>
+        <p class="body" style="margin-top:1.6rem">承上启下：workspace（<span class="k">git init</span> 目录）是「worktree per issue」的雏形，下游 <strong>Planner 切片 → 并行多 Coder → 对抗 Reviewer → Merge</strong>（现已随 <span class="k">ADR-0015</span> cutover 接进生产 <span class="k">/features</span>）全建立在「单 agent 能在一个真实工作区干完一件事」这个能力上——所以它先做。brownfield（clone 既有仓库）只需把 workspace 初始化从「空 + git init」换成「检出」，复用同一抽象。</p>
         <div class="callout"><span class="l">A/B 实证台账</span>held-out pass-rate：<span class="k">闭环 0.90 vs 开环 0.73</span>（#57 护栏落地后，gpt-4o-mini 双臂 + gpt-4o 裁判）。质量<strong>盲评</strong>全盘偏 legacy（14:1）——但那是裁判 convention-prior 偏置（把 legacy 的 <span class="k">return -1</span> spec-违例误读成优点），恰是「必须用客观 oracle 决胜、盲评质量只上色不进 gate」的最强证据。归档见 <span class="k">docs/e2e-test-report/eval-closed-loop-ab-alpha-e2e-test-report.md §8</span>。</div>
       </div>
     </section>

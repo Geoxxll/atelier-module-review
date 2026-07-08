@@ -295,7 +295,7 @@
       <a href="#interview"><span class="num">Q</span>面试要点</a>
       <a href="#limits"><span class="num">…</span>限制与未来</a>
     </nav>
-    <div class="toc-foot">01 / 前端工作台<br>四工位 rail · 6 种产出卡<br>SSE 投影 · claude-style 暖色</div>
+    <div class="toc-foot">01 / 前端工作台<br>三工位 rail · 闭环 DAG 视图<br>sseConnect 换票 · claude-style 暖色</div>
   </aside>
 
   <main class="content">
@@ -304,15 +304,15 @@
     <header class="hero" id="intro-top">
       <div class="plate-no">Plate 01 — Frontend Workbench</div>
       <h1>前端工作台</h1>
-      <p class="lede">一块能实时「看见」四个 AI 工匠接力干活的工作台——提交委托，看它沿 PM·ARCH·CODE·REVIEW 逐站显影。</p>
+      <p class="lede">一块能实时「看见」一支 AI 团队接力干活的工作台——登录后进项目，提交委托，看它沿 PM · ARCH · 闭环编排 逐站显影。</p>
       <div class="oneliner col">
-        一句话：前端把一条抽象的 Temporal 工作流，<b>翻译成看得见的工坊流水线</b>——一条<b>四工位导轨</b>指示当前进度，<b>六种产出卡</b>逐张显影，而驱动这一切的是一根 <b>SSE 事件流</b>：后端每推一个 <span class="k">workflow.{id}.event</span>，前端就把它 reduce 进「哪站在亮、哪张卡该出」的 UI 状态。
+        一句话：前端把一条抽象的 Temporal 工作流，<b>翻译成看得见的工坊流水线</b>——一条<b>三工位导轨</b>指示进度，<b>产出卡逐张显影</b>，闭环段还铺开一张<b>切片 DAG 波次视图</b>；驱动这一切的是一根经 <b>sseConnect</b> 换票管理的 SSE 事件流：后端每推一个 <span class="k">workflow.{id}.event</span>，前端就把它 reduce 进「哪站在亮、哪张卡该出」的 UI 状态。
       </div>
       <dl class="glance">
-        <div><dt>技术</dt><dd>Next.js 16<small>Tailwind 4 · App Router</small></dd></div>
-        <div><dt>骨架</dt><dd>四工位 rail<small>PM · ARCH · CODE · REVIEW</small></dd></div>
-        <div><dt>产出</dt><dd>6 种卡<small>PRD/Spec/Build/Review/交付/画布</small></dd></div>
-        <div><dt>实时</dt><dd>SSE 事件流<small>EventSource · 服务端推</small></dd></div>
+        <div><dt>技术</dt><dd>Next.js 16<small>Tailwind 4 · App Router · 多路由</small></dd></div>
+        <div><dt>骨架</dt><dd>三工位 rail<small>PM · ARCH · LOOP（闭环）</small></dd></div>
+        <div><dt>产出</dt><dd>晒图卡<small>画布 / PRD / Spec / 闭环 DAG</small></dd></div>
+        <div><dt>实时</dt><dd>SSE 事件流<small>sseConnect · 一次性 ticket · 断线重连</small></dd></div>
         <div><dt>视觉</dt><dd>claude-style<small>ivory + clay coral 暖色</small></dd></div>
       </dl>
     </header>
@@ -322,11 +322,11 @@
       <div class="col">
         <div class="eyebrow">先建直觉</div>
         <h2>把「一条工作流」变成「一块看得见的工作台」</h2>
-        <p class="body">想象你把一张订单丢进一间手工作坊。作坊里有四位师傅——<strong>产品经理</strong>、<strong>架构师</strong>、<strong>程序员</strong>、<strong>审查员</strong>，他们沿一条流水线把活儿一站站往下传。你站在玻璃窗外，希望能<strong>实时看见</strong>：现在活儿传到了谁手上、每站产出了什么、卡在哪里需要你拍板。这块「玻璃窗」就是前端工作台干的事。</p>
-        <p class="body">工作台把这层观感做成三样东西：一条 <span class="k">rail</span> 导轨（当前委托停在哪一站，一眼可见），六张<strong>晒图卡</strong>（PRD / 技术方案 / 构建 / 审查 / 交付 / 需求画布，各站产物逐张显影），以及一份<strong>工单日志</strong>（逐条流水账）。而真正把这些点亮的，是后端一路推过来的事件。</p>
+        <p class="body">想象你把一张订单丢进一间手工作坊。先经<strong>产品经理</strong>把需求打磨清楚、<strong>架构师</strong>定下技术方案，随后进入一段<strong>闭环编排</strong>——它把活儿切成若干片，铺开让多名<strong>程序员 / 审查员</strong>并行去做、再归并成一条集成分支。你站在玻璃窗外，希望能<strong>实时看见</strong>：现在活儿到了哪一站、每站产出了什么、卡在哪里需要你拍板。这块「玻璃窗」就是前端工作台干的事。</p>
+        <p class="body">工作台把这层观感做成三样东西：一条 <span class="k">rail</span> 导轨（当前委托停在 PM / ARCH / 闭环 哪一站，一眼可见），若干<strong>晒图卡</strong>（需求画布 / PRD / 技术方案，以及闭环段那张切片 DAG 波次视图，各站产物逐张显影），以及一份<strong>工单日志</strong>（逐条流水账）。而真正把这些点亮的，是后端一路推过来的事件。整个应用先经一道 <span class="k">AuthGate</span> 认人闸——未登录先落 <span class="k">/login</span>，登录后才进得来。</p>
         <div class="callout">
           <span class="l">为什么是 SSE（服务端推）而不是轮询</span>
-          工作流是<strong>长时间、被动进展</strong>的——Agent 可能几十秒才产出一步，中途还会挂起等你裁决。轮询要么太密（浪费）、要么太疏（延迟）。<strong>SSE 让后端在「有事发生」的那一刻主动推</strong>，前端一根 <span class="k">EventSource</span> 长连接就够，浏览器原生支持、断线自动重连、比 WebSocket 更轻——这是「单向服务端推流」的教科书场景。
+          工作流是<strong>长时间、被动进展</strong>的——Agent 可能几十秒才产出一步，中途还会挂起等你裁决。轮询要么太密（浪费）、要么太疏（延迟）。<strong>SSE 让后端在「有事发生」的那一刻主动推</strong>，前端一根 <span class="k">EventSource</span> 长连接就够，浏览器原生支持、比 WebSocket 更轻——这是「单向服务端推流」的教科书场景。只是端点靠一次性 <span class="k">ticket</span> 鉴权，原生重连不可复用，故换票与断线重连收进一层 <span class="k">sseConnect</span> 封装（见深挖 ①）。
         </div>
       </div>
     </section>
@@ -335,8 +335,8 @@
     <section id="static">
       <div class="col">
         <div class="eyebrow">图版 I · 静态架构</div>
-        <h2>一个页面组件，撑起导轨 + 六卡 + 日志</h2>
-        <p class="sub">整个工作台是单个 <span class="k">Home</span> 客户端组件（<span class="k">app/page.tsx</span>），内部由约 12 个函数组件拼成：外壳 + 导轨、六张产出卡、按阶段内联的交互面板。下面这张图是它的组件树。</p>
+        <h2>一道 AuthGate 门后，一个页面组件撑起导轨 + 卡组 + 日志</h2>
+        <p class="sub">工作台本体是 <span class="k">projects/[id]/page.tsx</span> 里的 <span class="k">Workbench</span> 客户端组件（外裹一层 <span class="k">AuthGate</span> 认人闸），项目身份取自路由参数 <span class="k">params.id</span>。内部由外壳 + 三工位导轨、若干产出晒图卡、按阶段内联的交互面板拼成。下图是它的组件树。</p>
       </div>
 
       <div class="legend">
@@ -346,36 +346,33 @@
       </div>
 
       <div class="plate">
-        <div class="plate-head"><span class="t">图版 <b>I-a</b> · page.tsx 组件树</span><span class="n">STATIC · component tree</span></div>
+        <div class="plate-head"><span class="t">图版 <b>I-a</b> · projects/[id]/page.tsx 组件树</span><span class="n">STATIC · component tree</span></div>
         <div class="plate-body">
           <div class="layers">
             <!-- 外壳层 -->
             <div class="lyr">
               <div class="tag">外壳 · Shell</div>
               <div class="band">
-                <div class="node cap"><span class="lbl">根组件 · app/page.tsx</span><span class="nm">Home()（"use client"）</span><span class="ds">持有全部 UI state（workflowId / stations / 六卡数据 / interactionPhase），一个 useEffect 挂 SSE 订阅，AmbientMesh 暖色氛围垫底</span></div>
+                <div class="node cap"><span class="lbl">Workbench · projects/[id]/page.tsx（AuthGate 门后）</span><span class="nm">Workbench()（"use client"）</span><span class="ds">projectId=useParams().id；持有全部 UI state（workflowId / stations / 各卡数据 / closedLoop / interactionPhase），一个 useEffect 经 sseConnect 挂 SSE 订阅，AmbientMesh 暖色氛围垫底</span></div>
                 <div class="lyr2" style="margin-top:.7rem">
-                  <div class="node"><span class="lbl">签名骨架</span><span class="nm">.rail 四工位导轨</span><span class="ds">rail-track / rail-fill / rail-token + 四个 rail-node，data-status 驱动点亮</span></div>
-                  <div class="node"><span class="lbl">输入 + 流水账</span><span class="nm">委托单 · 工单日志</span><span class="ds">textarea + RouteSwitch 道岔；ledger[] 逐条滚动</span></div>
+                  <div class="node"><span class="lbl">签名骨架</span><span class="nm">.rail 三工位导轨</span><span class="ds">rail-track / rail-fill / rail-token + 三个 rail-node（PM / ARCH / LOOP），data-status 驱动点亮</span></div>
+                  <div class="node"><span class="lbl">输入 + 流水账</span><span class="nm">委托单 · 工单日志</span><span class="ds">textarea + RouteSwitch 道岔 + connStatus 指示；ledger[] 逐条滚动</span></div>
                 </div>
               </div>
             </div>
             <div class="flowbar"><div class="arr"><span class="a w"><span class="v">▼</span> 事件到达即显影</span><span class="a r">人工裁决处回信号 <span class="v">▼</span></span></div></div>
             <!-- 产出卡层 -->
             <div class="lyr">
-              <div class="tag">产出 · 6 卡</div>
+              <div class="tag">产出 · 卡组</div>
               <div class="band">
                 <div class="node write" style="padding-bottom:.8rem">
-                  <span class="lbl">六种晒图卡 · 各站产物逐张显影（.sheet.develop 淡入上浮）</span>
+                  <span class="lbl">产出晒图卡 · 各站产物逐张显影（.sheet.develop 淡入上浮）</span>
                   <div class="capgrid" style="margin-top:.5rem">
+                    <div class="mini"><b>CanvasBoard</b><small>PM · 需求画布</small></div>
                     <div class="mini"><b>PrdCard</b><small>PM · PRD</small></div>
                     <div class="mini"><b>TechSpecCard</b><small>ARCH · 方案</small></div>
-                    <div class="mini"><b>BuildCard</b><small>CODE · 沙箱/PR</small></div>
-                    <div class="mini"><b>ReviewCard</b><small>REVIEW · 评分</small></div>
-                    <div class="mini"><b>DeliveryCard</b><small>交付印章</small></div>
-                  </div>
-                  <div class="capgrid" style="margin-top:.55rem;grid-template-columns:repeat(1,1fr)">
-                    <div class="mini"><b>CanvasBoard</b><small>refine 需求画布 · confirmed / pending / parked 三栏</small></div>
+                    <div class="mini"><b>ClosedLoopProgress</b><small>LOOP · 切片 DAG</small></div>
+                    <div class="mini"><b>RunHistoryList</b><small>历史工单</small></div>
                   </div>
                 </div>
               </div>
@@ -386,7 +383,7 @@
               <div class="tag">交互 · Sheet</div>
               <div class="band">
                 <div class="lyr2">
-                  <div class="node read"><span class="lbl">通用交互壳 · Sheet</span><span class="nm">refine 回复 / 澄清 / PRD 裁决 / 方案裁决</span><span class="ds">按 interactionPhase 内联渲染，输入后 POST 回一个 Temporal Signal</span></div>
+                  <div class="node read"><span class="lbl">通用交互壳 · Sheet</span><span class="nm">refine 回复 / 澄清 / PRD 裁决 / 方案裁决 / 切片计划裁决</span><span class="ds">按 interactionPhase 内联渲染，输入后经 authFetch POST 回一个 Temporal Signal</span></div>
                   <div class="node read"><span class="lbl">道岔 · RouteSwitch</span><span class="nm">refine 打磨 / direct 直接</span><span class="ds">二选一，决定委托走哪条链路（透传 mode）</span></div>
                 </div>
               </div>
@@ -394,7 +391,7 @@
           </div>
         </div>
       </div>
-      <p class="plate-cap col center"><b>怎么读：</b>竖着从上到下就是渲染层级——<b>外壳</b>永远在（导轨 + 输入 + 日志），<b>六卡</b>各自「有数据才出现」（<span class="k">{prdOutput && &lt;PrdCard/&gt;}</span> 条件渲染），<b>交互面板</b>只在轮到人裁决的那个 <span class="k">interactionPhase</span> 冒出来。左侧数据（事件）向下推着卡显影，右侧交互（裁决）向上回一个信号让工作流继续。</p>
+      <p class="plate-cap col center"><b>怎么读：</b>竖着从上到下就是渲染层级——<b>外壳</b>永远在（导轨 + 输入 + 日志），<b>各卡</b>「有数据才出现」（<span class="k">{prdOutput && &lt;PrdCard/&gt;}</span> 条件渲染；闭环卡在 <span class="k">closed_loop</span> 站启动或已有切片时出现），<b>交互面板</b>只在轮到人裁决的那个 <span class="k">interactionPhase</span> 冒出来。左侧数据（事件）向下推着卡显影，右侧交互（裁决）经 authFetch 向上回一个信号让工作流继续。</p>
 
       <div class="col">
         <h3>视觉底座：一套 token，两种主题</h3>
@@ -430,49 +427,54 @@
       <p class="plate-cap col center"><b>一眼看穿：</b>左右两栏<b>变量名一模一样</b>，只有取值不同——这就是「token 重映射」能让 JSX 几乎零改动就换皮的原因（深挖 ②）。字体走三角色分工：<b>serif</b>（Newsreader + Noto Serif SC）当正文与标题的「嗓音」，<b>mono</b>（JetBrains Mono）做数据微标签，<b>sans</b>（Inter）做 UI 控件。这套暖色也正是你眼前这份复盘页视觉的血缘来源。</p>
 
       <div class="col">
-        <h3>两条路由：面向用户的台 + 面向开发者的台</h3>
-        <p class="body">前端有两个刻意分开的入口，不互相揉进对方外壳：</p>
+        <h3>七条路由：一道 AuthGate 门后的产品台 + 调试台</h3>
+        <p class="body">前端从单页长成一套多路由应用（issue #124 起）。除公开登录页外，每个页面都裹一层 <span class="k">AuthGate</span>（打 <span class="k">/api/auth/me</span> 认人、未登录跳 <span class="k">/login</span>），产品台与调试台仍刻意分开、不互揉外壳：</p>
       </div>
       <div class="plate">
         <div class="plate-head"><span class="t">图版 <b>I-c</b> · 路由地图</span><span class="n">STATIC · routes</span></div>
         <div class="plate-body">
           <div class="lyr2">
-            <div class="node cap"><span class="lbl">路由 · app/page.tsx</span><span class="nm">/ 工作台</span><span class="ds">面向终端用户：提交委托、看四站显影、内联裁决。单租户视角、单条 workflow 的 SSE 订阅。</span></div>
-            <div class="node store"><span class="lbl">路由 · app/dev-console/page.tsx</span><span class="nm">/dev-console 可观测台</span><span class="ds">DEV_MODE-only 跨租户控制室：Registry → Run Ledger → Telemetry → LLM Wire 四窗格 + 记忆档案，走 /api/admin/* 只读 SSE。</span></div>
+            <div class="node"><span class="lbl">公开 · app/login/page.tsx</span><span class="nm">/login 登录页</span><span class="ds">应用入口：GitHub OAuth 主入口 +（DEV_MODE）一键 dev 登录旁路。唯一不裹 AuthGate 的页。</span></div>
+            <div class="node"><span class="lbl">路由 · app/page.tsx</span><span class="nm">/ 跳转壳</span><span class="ds">不再是工作台本体：AuthGate + router.replace("/projects")，认人后立即落地到项目列表。</span></div>
+            <div class="node read"><span class="lbl">路由 · app/projects/page.tsx</span><span class="nm">/projects 项目列表</span><span class="ds">当前租户的项目卡（RLS 隔离）+ CreateProjectModal（brownfield 选仓库 / greenfield 新建两条路）+ 空/加载/错误三态。</span></div>
+            <div class="node cap"><span class="lbl">路由 · app/projects/[id]/page.tsx</span><span class="nm">/projects/[id] 工作台</span><span class="ds">面向用户的工作台本体：提交委托、看三站显影、内联裁决。单条 workflow 的 sseConnect 订阅。</span></div>
+            <div class="node read"><span class="lbl">路由 · runs/[runId]/page.tsx</span><span class="nm">/…/runs/[runId] 历史回看</span><span class="ds">只读重放：不订阅 SSE，一次性拉 events/history，用同一个 closedLoopReducer 折叠成定格 DAG。</span></div>
+            <div class="node"><span class="lbl">路由 · app/settings/page.tsx</span><span class="nm">/settings 用量 · 套餐</span><span class="ds">本月用量 / plan / 月度上限进度，走 GET /api/usage；loading 骨架 / error 重试 / 数据（含空）态。</span></div>
+            <div class="node store"><span class="lbl">路由 · app/dev-console/page.tsx</span><span class="nm">/dev-console 可观测台</span><span class="ds">DEV_MODE-only 跨租户控制室：Registry → Run Ledger → Telemetry → LLM Wire + 记忆档案，走 /api/admin/* 只读 SSE。</span></div>
           </div>
         </div>
       </div>
-      <p class="plate-cap col center"><b>为什么分开：</b>工作台是产品，可观测台是调试仪表盘——信息密度、数据源（RLS 内 vs service-role 跨租户）、暴露面（生产可见 vs 仅 DEV_MODE）全不同。两者<b>共用同一套 token 与 primitives</b>（ThemeToggle / 暖色皮），但布局与叙事各走各的。</p>
+      <p class="plate-cap col center"><b>为什么分开：</b>工作台是产品，可观测台是调试仪表盘——信息密度、数据源（RLS 内 vs service-role 跨租户）、暴露面（生产可见 vs 仅 DEV_MODE）全不同。所有页<b>共用同一套 token 与 primitives</b>（AuthGate / ThemeToggle / AmbientMesh / 暖色皮），但布局与叙事各走各的。</p>
     </section>
 
     <!-- ===== II 动态流程 ===== -->
     <section id="dynamic">
       <div class="col">
         <div class="eyebrow">图版 II · 动态流程</div>
-        <h2>SSE 的一生：从订阅到把事件 reduce 成 UI</h2>
-        <p class="sub">前端不「拉」进度，而是订一根事件流，被动接收。核心是一个 <span class="k">handleMessage</span> reducer——每收一个事件，按 <span class="k">type</span> 决定「点亮哪站、出哪张卡、写哪条日志」。</p>
+        <h2>SSE 的一生：从换票订阅到把事件 reduce 成 UI</h2>
+        <p class="sub">前端不「拉」进度，而是订一根事件流，被动接收。连接生命周期（换票 / 建连 / 断线重连）交给 <span class="k">sseConnect</span>；事件语义交给一个 <span class="k">handleMessage</span> reducer——每收一个事件，按 <span class="k">type</span> 决定「点亮哪站、出哪张卡、写哪条日志」。</p>
       </div>
 
       <div class="plate">
-        <div class="plate-head"><span class="t">图版 <b>II-a</b> · SSE 生命周期（提交 → 订阅 → 归约 → 渲染）</span><span class="n">DYNAMIC · SSE lifecycle</span></div>
+        <div class="plate-head"><span class="t">图版 <b>II-a</b> · SSE 生命周期（提交 → 换票订阅 → 归约 → 渲染）</span><span class="n">DYNAMIC · SSE lifecycle</span></div>
         <div class="plate-body">
           <div class="flow">
             <div class="fstep"><div class="rail"><div class="dot">1</div><div class="line"></div></div>
-              <div class="card"><div class="who">handleSubmit · 用户提交委托</div><p class="what"><b>POST</b> <span class="k">/api/projects/{id}/features</span>，拿回 <span class="k">{ workflow_id }</span> 写进 state；先手动把 PM 站点亮为 active。</p></div></div>
+              <div class="card"><div class="who">handleSubmit · 用户提交委托</div><p class="what"><b>authFetch POST</b> <span class="k">/api/projects/{id}/features</span>（401→refresh→retry 透明），拿回 <span class="k">{ workflow_id }</span> 写进 state；先手动把 PM 站点亮为 active。</p><p class="note">402 是配额预检拦下（M2-3），单独标出、引导去 /settings，不把英文原始 detail 糊脸上。</p></div></div>
             <div class="fstep" data-c="slate"><div class="rail"><div class="dot">2</div><div class="line"></div></div>
-              <div class="card"><div class="who">useEffect([workflowId]) · 开连接</div><p class="what"><span class="k">new EventSource(`/api/workflows/${id}/events`)</span>，给约 18 种事件名逐个 <span class="k">addEventListener</span>，外加 onmessage 兜底。</p><p class="note">workflowId 变化即重建连接；卸载 / 终止时 closedRef=true + es.close()，防止已关连接的迟到帧再改状态。</p></div></div>
+              <div class="card"><div class="who">useEffect([workflowId]) · sseConnect 开连接</div><p class="what"><span class="k">sseConnect({ workflowId, eventTypes, onEvent, onStatusChange, onFatalError })</span>：先 <b>POST /api/sse-ticket</b> 换一枚一次性票，再 <span class="k">new EventSource(?ticket=…)</span>，给约 23 种事件名逐个 addEventListener + onmessage 兜底。</p><p class="note">端点靠一次性 ticket 鉴权，原生重连拿旧票必失败——故 onerror 时退避 → 换新票 → 整个重建（不复用），重连带 last_event_id 补历史。卸载 / 终止时 closedRef=true + conn.close()。</p></div></div>
             <div class="fstep" data-c="slate"><div class="rail"><div class="dot">3</div><div class="line"></div></div>
-              <div class="card"><div class="who">收到帧 · JSON.parse</div><p class="what">每帧 <span class="k">evt.data</span> 反序列化成 <span class="k">AgentEvent</span>（扁平 camelCase）。解析失败（ping 帧等）静默忽略，不炸。</p></div></div>
-            <div class="fstep" data-c="clay"><div class="rail"><div class="dot">4</div><div class="line"></div></div>
-              <div class="card"><div class="who">handleMessage · 事件 → 状态归约</div><p class="what">一长串 <span class="k">if (eventType === …)</span> 分支：<b>coder_started</b> → 把 architect 置 done、coder 置 active；<b>coder_completed</b> → setBuild(…)；<b>review_completed</b> → setReview + 按 approved 决定 reviewer 站 done/active。每条都追加一行 ledger。</p><p class="note">四站状态机 + 六卡 setState 全在这一个函数里收口——事件是唯一的状态推进器。</p></div></div>
-            <div class="fstep" data-c="clay"><div class="rail"><div class="dot">5</div><div class="line"></div></div>
-              <div class="card"><div class="who">遇裁决点 · 切 interactionPhase</div><p class="what"><b>prd_pending_approval</b> / <b>tech_spec_pending_approval</b> / <b>clarification_needed</b> / <b>refine_turn</b> 会把 phase 切到对应交互态，内联冒出 Sheet 面板等人操作。</p></div></div>
+              <div class="card"><div class="who">收到帧 · 去重 + JSON.parse</div><p class="what">先按 <span class="k">`${type}:${evt.data}`</span> 内容签名过 <span class="k">seenEventKeys</span>（挡重连补档的重放），再把 <span class="k">evt.data</span> 反序列化成 <span class="k">AgentEvent</span>。解析失败（ping 帧等）静默忽略。</p></div></div>
+            <div class="fstep"><div class="rail"><div class="dot">4</div><div class="line"></div></div>
+              <div class="card"><div class="who">handleMessage · 事件 → 状态归约</div><p class="what">一长串 <span class="k">if (eventType === …)</span> 分支：<b>architect_started</b> → PM done、ARCH active；<b>tech_spec_pending_approval</b> → setTechSpec；闭环段 <b>planner_done / wave_started / slice_completed / wave_merged / finalized</b> 一律委托 <span class="k">reduceClosedLoopEvent</span> 折叠进 closedLoop。每条都追加一行 ledger。</p><p class="note">三站状态机 + 各卡 setState 全在这一个函数里收口——事件是唯一的状态推进器。</p></div></div>
+            <div class="fstep"><div class="rail"><div class="dot">5</div><div class="line"></div></div>
+              <div class="card"><div class="who">遇裁决点 · 切 interactionPhase</div><p class="what"><b>refine_turn</b> / <b>clarification_needed</b> / <b>prd_pending_approval</b> / <b>tech_spec_pending_approval</b> / <b>plan_pending_approval</b> 会把 phase 切到对应交互态，内联冒出 Sheet 面板等人操作。</p></div></div>
             <div class="fstep" data-c="sage"><div class="rail"><div class="dot">6</div><div class="line"></div></div>
-              <div class="card"><div class="who">终止事件 · 收束</div><p class="what"><b>workflow_completed / failed / rejected</b> 命中 <span class="k">TERMINAL_EVENTS</span> → es.close()、phase=done、点亮交付印章。React 按新 state 重渲染导轨与卡。</p></div></div>
+              <div class="card"><div class="who">终止事件 · 收束</div><p class="what"><b>finalized / workflow_completed / failed / rejected</b> 命中 <span class="k">TERMINAL_EVENTS</span> → conn.close()、phase=done、点亮闭环终局卡。React 按新 state 重渲染导轨与卡。</p></div></div>
           </div>
         </div>
       </div>
-      <p class="plate-cap col center"><b>关键切分：</b>「连接生命周期」（开 / 关 / 防迟到帧）在 <b>useEffect</b> 里管；「事件语义」（哪站亮、哪卡出）在 <b>handleMessage</b> 这个 reducer 里管。UI 是 state 的纯函数——前端从不主动查进度，只把服务端推来的事件<b>投影</b>成界面。</p>
+      <p class="plate-cap col center"><b>关键切分：</b>「连接生命周期」（换票 / 重连 / 防迟到帧）在 <b>sseConnect</b> 里管；「事件语义」（哪站亮、哪卡出）在 <b>handleMessage</b> 这个 reducer 里管，闭环 DAG 再下沉到 <b>reduceClosedLoopEvent</b> 纯核。UI 是 state 的纯函数——前端从不主动查进度，只把服务端推来的事件<b>投影</b>成界面。</p>
 
       <div class="plate">
         <div class="plate-head"><span class="t">图版 <b>II-b</b> · RefineCanvas · 纯投影（不持久化）</span><span class="n">DYNAMIC · ephemeral projection</span></div>
@@ -481,9 +483,9 @@
             <div>
               <p class="flow-title read">refine_canvas 事件 → 三栏视图</p>
               <div class="flow">
-                <div class="fstep" data-c="clay"><div class="rail"><div class="dot">A</div><div class="line"></div></div>
+                <div class="fstep"><div class="rail"><div class="dot">A</div><div class="line"></div></div>
                   <div class="card"><div class="who">收到 refine_canvas 帧</div><p class="what">PM 打磨每一轮都推一帧，载荷是<b>当轮完整快照</b>：<span class="k">{ round, confirmed[], pending[], parked[] }</span>。</p></div></div>
-                <div class="fstep" data-c="clay"><div class="rail"><div class="dot">B</div><div class="line"></div></div>
+                <div class="fstep"><div class="rail"><div class="dot">B</div><div class="line"></div></div>
                   <div class="card"><div class="who">projectRefineCanvas(data)</div><p class="what">纯函数投影：容错读三个字符串数组（缺失/非数组降级为 []），产出 RefineCanvasView。<b>不做任何累积/合并</b>。</p></div></div>
                 <div class="fstep"><div class="rail"><div class="dot">C</div></div>
                   <div class="card"><div class="who">setCanvas → CanvasBoard 覆盖渲染</div><p class="what">直接覆盖上一轮，渲染 已确认 / 待定 / 延展 idea 三栏。</p></div></div>
@@ -508,16 +510,16 @@
     <section id="e2e">
       <div class="col">
         <div class="eyebrow">端到端 · 走一遍</div>
-        <h2>一份「用户登录」委托，如何点亮四站</h2>
-        <p class="sub">跟着一条 direct 委托，看 SSE 事件如何逐个到达、依次点亮 PM → ARCH → CODE → REVIEW，并把六卡一张张显影出来。</p>
+        <h2>一份「用户登录」委托，如何点亮三站 + 铺开一张切片 DAG</h2>
+        <p class="sub">跟着一条 direct 委托，看 SSE 事件如何逐个到达、依次点亮 PM → ARCH → 闭环编排，并把需求画布 / PRD / 技术方案 / 切片 DAG 一张张显影出来。</p>
       </div>
       <div class="e2e">
-        <div class="e2e-head"><span class="tag">场景 · direct 直接交付</span><h3>George 提交「邮箱+密码登录，失败 5 次锁定」，全程盯着工作台</h3></div>
+        <div class="e2e-head"><span class="tag">场景 · direct 直接交付</span><h3>George 在某项目工作台提交「邮箱+密码登录，失败 5 次锁定」，全程盯着进度</h3></div>
         <div class="e2e-body">
-          <div class="beat"><div class="when">t0 · 提交</div><div><p class="what">textarea 写完，点「提交委托」。前端 POST features、拿 workflow_id、开 EventSource，PM 站先手动点亮。</p>
+          <div class="beat"><div class="when">t0 · 提交</div><div><p class="what">textarea 写完，点「提交委托」。authFetch POST features、拿 workflow_id，useEffect 触发 sseConnect 换票建连，PM 站先手动点亮。</p>
             <pre><span class="c">// handleSubmit 成功后</span>
-POST /api/projects/…/features → { workflow_id: <span class="g">"a1b2c3d4-…"</span> }
-setWorkflowId(id)  <span class="c">// → useEffect 触发，EventSource 开连接</span>
+authFetch POST /api/projects/<span class="g">{id}</span>/features → { workflow_id: <span class="g">"a1b2c3d4-…"</span> }
+setWorkflowId(id)  <span class="c">// → useEffect → sseConnect 换票 + 建连</span>
 setStation(<span class="g">"pm"</span>, <span class="b">"active"</span>)   rail-token 落在 PM(01)</pre></div></div>
 
           <div class="beat"><div class="when">t1 · PM 站</div><div><p class="what">连上后第一帧 <b>connected</b>「线路已接通」。PM 判定需求够清晰，直接产 PRD，推 <b>prd_pending_approval</b>。</p>
@@ -529,33 +531,34 @@ setStation(<span class="g">"pm"</span>, <span class="b">"active"</span>)   rail-
 setPrdOutput(data.prd)   <span class="c">// → PrdCard 逐行显影</span>
 setStation(<span class="g">"pm"</span>, <span class="b">"done"</span>)
 setInteractionPhase(<span class="g">"prd_review"</span>)  <span class="c">// 冒出裁决 Sheet</span></pre>
-            <p class="micro-note clay">George 在裁决面板点「盖章放行」→ POST <span class="k">/approve-prd</span> 回一个 Temporal Signal，工作流继续。</p></div></div>
+            <p class="micro-note clay">George 在裁决面板点「盖章放行」→ authFetch POST <span class="k">/approve-prd</span> 回一个 Temporal Signal，工作流继续。</p></div></div>
 
-          <div class="beat"><div class="when">t2 · ARCH 站</div><div><p class="what"><b>architect_started</b> → PM done、ARCH active；随后 <b>tech_spec_pending_approval</b> 带回技术方案，TechSpecCard 显影，再次等裁决。</p>
+          <div class="beat"><div class="when">t2 · ARCH 站</div><div><p class="what"><b>architect_started</b> → PM done、ARCH active；随后 <b>tech_spec_pending_approval</b> 带回技术方案，TechSpecCard 显影，再次等裁决（放行走 <span class="k">/approve-tech-spec</span>）。</p>
             <pre><span class="c">// architect_started → tech_spec_pending_approval</span>
 setStation(<span class="g">"architect"</span>, <span class="b">"active"</span>)
 setTechSpec(data.techSpec)   rail-token 滑到 ARCH(02)</pre></div></div>
 
-          <div class="beat"><div class="when">t3 · CODE 站</div><div><p class="what">放行方案后 <b>coder_started</b> → CODE active。Coder 在 Docker 沙箱跑完，<b>coder_completed</b> 带沙箱结果 + PR 链接，BuildCard 显影。</p>
-            <pre><span class="c">// event: coder_completed</span>
-{ sandboxPassed:<span class="g">true</span>, fixAttempts:1, prUrl:<span class="g">"https://github…/pull/42"</span> }
-setBuild({ sandboxPassed:true, prUrl:… })
-tone = <span class="g">"pass"</span>   ledger += "代码产出 · 沙箱已跑"</pre></div></div>
+          <div class="beat"><div class="when">t3 · 闭环 · 切片 + 闸</div><div><p class="what">放行方案后进闭环编排：<b>planner_started</b> → LOOP active；<b>planner_done</b> 带切片 DAG，<b>reduceClosedLoopEvent</b> 建图、ClosedLoopProgress 按拓扑深度铺泳道。若 <b>plan_pending_approval</b>，等人走 <span class="k">/resolve-plan</span>。</p>
+            <pre><span class="c">// event: planner_done → 建图</span>
+{ sliceCount:<span class="y">3</span>, slices:[{ id:<span class="g">"S1"</span>, blocked_by:[] }, …] }
+setClosedLoop(prev =&gt; reduceClosedLoopEvent(prev, type, data))
+setStation(<span class="g">"closed_loop"</span>, <span class="b">"active"</span>)</pre></div></div>
 
-          <div class="beat"><div class="when">t4 · REVIEW 站</div><div><p class="what"><b>review_started</b> → REVIEW active；<b>review_completed</b> 带评分与裁决，ReviewCard 显影大评分 + 印章。未过则退回 Coder 返工（reviewer 站回 active），最多 3 轮。</p>
-            <pre><span class="c">// event: review_completed</span>
-{ approved:<span class="g">true</span>, overallScore:<span class="y">88</span>, hasCritical:false }
-setReview({ approved:true, overallScore:88 })
-setStation(<span class="g">"reviewer"</span>, ok ? <span class="b">"done"</span> : <span class="r">"active"</span>)</pre></div></div>
+          <div class="beat"><div class="when">t4 · 波次并行</div><div><p class="what"><b>wave_started</b> → 该批切片置 running；每片 <b>slice_started</b> / <b>slice_completed</b>(approved) 更新卡片状态；<b>wave_merged</b> 给合入切片打「已合并」标。全走同一个 reducer 按 key 覆盖，天然幂等。</p>
+            <pre><span class="c">// event: slice_completed</span>
+{ sliceId:<span class="g">"S1"</span>, approved:<span class="g">true</span>, branch:<span class="g">"slice/S1"</span>, sha:<span class="g">"a1b2…"</span> }
+setClosedLoop(prev =&gt; reduceClosedLoopEvent(prev, type, data))
+tone = <span class="g">"pass"</span>   ledger += "切片完成 · S1 · 通过"</pre></div></div>
 
-          <div class="beat"><div class="when">t5 · 交付</div><div><p class="what"><b>workflow_completed</b> 命中 TERMINAL_EVENTS：DeliveryCard 盖下「Delivered」印章，es.close()、phase=done，「新委托」按钮出现。</p>
-            <pre><span class="c">// 终止事件收束</span>
+          <div class="beat"><div class="when">t5 · 终局</div><div><p class="what"><b>finalized</b> 命中 TERMINAL_EVENTS：ClosedLoopProgress 盖下 FinalizeCard（状态 + 集成分支 + PR 直达），conn.close()、phase=done、闭环站转 done，「新委托」按钮出现。</p>
+            <pre><span class="c">// event: finalized —— 终局收束</span>
+{ status:<span class="g">"completed"</span>, prUrl:<span class="g">"https://github…/pull/42"</span> }
 if (TERMINAL_EVENTS.has(type)) {
-  closedRef.current = true; es.close();
+  closedRef.current = true; conn.close();
   setInteractionPhase(<span class="g">"done"</span>); setDone(true);
 }
-<span class="c">// 四站全绿，rail-token 停在 REVIEW(04)</span></pre>
-            <p class="micro-note">一条委托的完整旅程：6 张卡张张显影、四站依次点亮，全由后端一串 SSE 事件驱动，前端只负责「翻译成看得见的进度」。</p></div></div>
+<span class="c">// 三站全绿，rail-token 停在 LOOP(03)</span></pre>
+            <p class="micro-note">一条委托的完整旅程：各卡张张显影、三站依次点亮、闭环段铺开切片 DAG，全由后端一串 SSE 事件驱动，前端只负责「翻译成看得见的进度」。这次 run 也会进历史工单，日后可在 <span class="k">runs/[runId]</span> 用同一个 reducer 只读回看。</p></div></div>
         </div>
       </div>
     </section>
@@ -568,33 +571,36 @@ if (TERMINAL_EVENTS.has(type)) {
         <p class="sub">展开看代码级细节，也是面试里最容易被追问「你前端具体怎么做的」的地方。</p>
       </div>
 
-      <details class="deep" open data-tag="page.tsx · useEffect + handleMessage">
-        <summary>① SSE 订阅与「事件 → 状态归约」</summary>
+      <details class="deep" open data-tag="page.tsx · sseConnect + handleMessage">
+        <summary>① SSE 订阅（sseConnect 换票 + 重连）与「事件 → 状态归约」</summary>
         <div class="inner">
-          <p class="body">工作台的心脏是一个 <span class="k">useEffect([workflowId])</span>：workflowId 一变就建连接，给约 18 种命名事件逐个挂监听，全部汇进同一个 <span class="k">handleMessage(evt, type)</span> reducer。它把「网络帧」翻译成「四站状态机 + 六卡 setState + 一行日志」。</p>
-          <pre>const es = new EventSource(`${API_BASE}/api/workflows/${workflowId}/events`);
+          <p class="body">工作台的心脏是一个 <span class="k">useEffect([workflowId])</span>：workflowId 一变就调 <span class="k">sseConnect</span> 建连（换票 / 断线重连都封在里面），事件全汇进同一个 <span class="k">handleMessage(evt, type)</span> reducer。它把「网络帧」翻译成「三站状态机 + 各卡 setState + 一行日志」，闭环 DAG 再下沉到共享纯核 <span class="k">reduceClosedLoopEvent</span>。</p>
+          <pre>const seenEventKeys = new Set();  <span class="c">// 重连补档去重（内容签名）</span>
+const conn = sseConnect({ workflowId, eventTypes, onEvent: handleMessage,
+  onStatusChange: setConnStatus,   <span class="c">// connecting / open / reconnecting</span>
+  onFatalError: () =&gt; { <span class="c">/* 线路彻底断，提示重提委托 */</span> } });
 
-const handleMessage = (evt, eventType) => {
-  if (closedRef.current) return;              <span class="c">// 已关连接的迟到帧，丢弃</span>
-  let data; try { data = JSON.parse(evt.data); } catch { return; } <span class="c">// ping 帧静默忽略</span>
+const handleMessage = (evt, eventType) =&gt; {
+  if (closedRef.current) return;                <span class="c">// 已关连接的迟到帧，丢弃</span>
+  const key = `${eventType}:${evt.data}`;
+  if (seenEventKeys.has(key)) return;            <span class="c">// 重放同一帧 → 整条跳过</span>
+  seenEventKeys.add(key);
+  let data; try { data = JSON.parse(evt.data); } catch { return; } <span class="c">// ping 帧忽略</span>
 
-  if (eventType === <span class="g">"coder_started"</span>) {
-    setStation(<span class="g">"architect"</span>, <span class="b">"done"</span>); setStation(<span class="g">"coder"</span>, <span class="b">"active"</span>);
-  } else if (eventType === <span class="g">"review_completed"</span>) {
-    const ok = data.approved ?? false;
-    setReview({ approved: ok, overallScore: data.overallScore ?? 0, … });
-    setStation(<span class="g">"reviewer"</span>, ok ? <span class="b">"done"</span> : <span class="r">"active"</span>);   <span class="c">// 未过=退回返工</span>
-  } <span class="c">/* …约 18 个分支… */</span>
+  if (eventType === <span class="g">"architect_started"</span>) {
+    setStation(<span class="g">"pm"</span>, <span class="b">"done"</span>); setStation(<span class="g">"architect"</span>, <span class="b">"active"</span>);
+  } else if (eventType === <span class="g">"planner_done"</span>) {                <span class="c">// 闭环段 → 共享纯核</span>
+    setClosedLoop(prev =&gt; reduceClosedLoopEvent(prev, eventType, data));
+  } <span class="c">/* …约 23 个分支（wave/slice/merge 同样走 reducer）… */</span>
 
   setLedger(prev =&gt; [...prev, { id: ++eventCounter.current, type, text, tone, timestamp }]);
-  if (TERMINAL_EVENTS.has(eventType)) { closedRef.current = true; es.close(); setDone(true); }
-};
-eventTypes.forEach(t =&gt; es.addEventListener(t, e =&gt; handleMessage(e, t)));
-es.onmessage = e =&gt; handleMessage(e, <span class="g">"update"</span>);   <span class="c">// 无名帧兜底</span></pre>
+  if (TERMINAL_EVENTS.has(eventType)) { closedRef.current = true; conn.close(); setDone(true); }
+};</pre>
           <ul class="tight">
-            <li class="body"><strong>为什么命名事件 + onmessage 双挂</strong>：后端多数事件带 <span class="k">event:</span> 名（走 addEventListener），但也可能发无名帧（走 onmessage），两头都兜住不漏。</li>
-            <li class="body"><strong>closedRef 守卫</strong>：SSE 关闭是异步的，用一个 ref 标志挡住「关闭后迟到的帧再 setState」——否则会在已卸载/已完成的界面上乱改状态。</li>
-            <li class="body"><strong>reducer 收口</strong>：所有状态推进只在 handleMessage 里发生，读代码时「事件→界面」一处可查，是可维护性的关键。</li>
+            <li class="body"><strong>为什么不用原生重连</strong>：SSE 端点靠 URL 上一次性 ticket 鉴权（<span class="k">POST /api/sse-ticket</span> 换、30s TTL、订阅即核销），原生 EventSource 断线会拿着同一枚已核销的票重试、注定失败。sseConnect 接管：退避 → 换新票 → 整个新建（不复用旧连接），换票走 authFetch（401→refresh→retry 透明）。</li>
+            <li class="body"><strong>seenEventKeys 去重</strong>：重连带 <span class="k">last_event_id</span> 补历史时，会重推「live 已发但 event_log 还没落库」那批帧；工单日志是 append-only，用「事件类型 + 原始 payload」内容签名挡掉重放，避免日志多出一行。</li>
+            <li class="body"><strong>reducer 幂等 + 共享</strong>：闭环 DAG 分支全走 reduceClosedLoopEvent，按 key（sliceId / wave）整体覆盖、重复投递结果不变；这同一个纯核被 <span class="k">runs/[runId]</span> 历史回看复用（拉 events/history 折叠），实时与回看不各写一套累积逻辑。</li>
+            <li class="body"><strong>closedRef 守卫</strong>：连接关闭是异步的，用一个 ref 挡住「关闭后迟到帧再 setState」，否则会在已卸载/已完成的界面上乱改状态。</li>
           </ul>
         </div>
       </details>
@@ -672,7 +678,7 @@ const frame = () =&gt; {
           <ul class="tight">
             <li class="body"><strong>AmbientMesh</strong>：几团重模糊暖色 blob 各自慢时钟漂移 + 光标光斑（rAF-lerp，比 CSS transition 更跟手），mask 向下淡出，垫在 hero 之下。</li>
             <li class="body"><strong>Reveal</strong>：IntersectionObserver 进视口才加 <span class="k">.in</span> 触发淡入上浮，兄弟元素用 <span class="k">delay={i*70}</span> 错峰；reduced-motion 下 CSS 直接显示、无需 JS 特判。</li>
-            <li class="body"><strong>ThemeToggle</strong>：第三个共享原语，见深挖 ③。三者构成跨两条路由复用的 UI 底座。</li>
+            <li class="body"><strong>ThemeToggle</strong>：第三个共享原语，见深挖 ③。三者（连同 AuthGate）构成跨全部路由复用的 UI 底座。</li>
             <li class="body"><strong>无障碍floor</strong>：globals.css 里 <span class="k">@media (prefers-reduced-motion: reduce)</span> 统一冻结 blob 漂移、隐藏光斑、关掉 stamp/rail 动画；<span class="k">:focus-visible</span> 全局可见焦点环。</li>
           </ul>
         </div>
@@ -687,12 +693,12 @@ const frame = () =&gt; {
         <p class="sub">不是「我用 React 写了个页面」，而是每个决定背后都有一句「为什么这样更好」。</p>
       </div>
       <div class="iv">
-        <div class="ivcard"><div class="q">为什么用 SSE 而不是轮询 / WebSocket？</div><h4>单向服务端推的最简解</h4><p>进度是<strong>后端被动产出、单向下推</strong>，不需要双工。SSE 一根长连接、浏览器原生、断线自动重连，比 WebSocket 轻，比轮询准且省。选型贴合数据流方向。</p></div>
+        <div class="ivcard"><div class="q">为什么用 SSE 而不是轮询 / WebSocket？</div><h4>单向服务端推的最简解</h4><p>进度是<strong>后端被动产出、单向下推</strong>，不需要双工。SSE 一根长连接、浏览器原生，比 WebSocket 轻，比轮询准且省。端点靠一次性 ticket 鉴权，所以换票 + 断线重连收进一层 <span class="k">sseConnect</span> 封装，而非裸原生重连。</p></div>
         <div class="ivcard"><div class="q">整站换皮为什么几乎不动 JSX？</div><h4>token 重映射 · 名字是接口</h4><p>颜色全走语义 CSS 变量，重构只改<strong>变量的值</strong>、不动类名与 DOM。换整套视觉语言 = 改一张变量表，而非全局搜替 + 逐组件回归。</p></div>
         <div class="ivcard"><div class="q">暗色模式怎么不闪白？</div><h4>paint 前阻塞式内联脚本</h4><p><span class="k">&lt;head&gt;</span> 里同步落 <span class="k">data-theme</span>，先读 localStorage 再退回系统偏好；配 suppressHydrationWarning 压掉水合不一致。首帧就是对的主题。</p></div>
         <div class="ivcard"><div class="q">需求画布为什么不持久化？</div><h4>让易变层无状态</h4><p>真相源在后端对话历史，前端只做<strong>无副作用覆盖投影</strong>。组件极简、可单测、丢了能重算——「持久 vs 实时」被干净地拆开。</p></div>
-        <div class="ivcard"><div class="q">18 种事件怎么不写成一团乱麻？</div><h4>单一 reducer 收口</h4><p>所有状态推进只在 <span class="k">handleMessage</span> 里发生，四站机 + 六卡 + 日志一处可查。加 closedRef 守卫挡住已关连接的迟到帧。</p></div>
-        <div class="ivcard"><div class="q">产品台和调试台为什么分两条路由？</div><h4>关注点 + 暴露面隔离</h4><p>工作台面向用户、走 RLS 内数据；可观测台跨租户、仅 DEV_MODE、信息密度高。两者共用 token 与 primitives，但布局与数据源各自独立。</p></div>
+        <div class="ivcard"><div class="q">23 种事件怎么不写成一团乱麻？</div><h4>单一 reducer 收口 + 闭环下沉纯核</h4><p>所有状态推进只在 <span class="k">handleMessage</span> 里发生，三站机 + 各卡 + 日志一处可查；闭环 DAG 再委托 <span class="k">reduceClosedLoopEvent</span>。closedRef 挡迟到帧、seenEventKeys 挡重放。</p></div>
+        <div class="ivcard"><div class="q">实时进度和历史回看如何不各写一套？</div><h4>共享一个累积纯核</h4><p>实时工作台逐条推 SSE、历史回看一次性拉 <span class="k">events/history</span>，都喂给同一个 <span class="k">reduceClosedLoopEvent</span> 折叠。按 key 覆盖天然幂等，数据源变了、累积规则不变。</p></div>
       </div>
     </section>
 
@@ -704,20 +710,20 @@ const frame = () =&gt; {
         <table class="limits">
           <thead><tr><th>限制</th><th>影响</th><th>当前缓解 / 为何可推后</th></tr></thead>
           <tbody>
-            <tr><td>page.tsx 12 组件未拆文件</td><td>单文件偏长，导航略累</td><td>纯 churn、零功能收益，主动推迟（见 STATE 遗留债）</td></tr>
-            <tr><td>SSE 重连状态未回填</td><td>断线期间的中间事件不自动补回</td><td>onerror 仅关连接 + 提示重提；终态可重查，影响有限</td></tr>
-            <tr><td>产出未做打字流</td><td>PRD/方案是整块到达非逐字流</td><td>事件粒度是「阶段完成」，非 token 级；streaming 待后端支持</td></tr>
-            <tr><td>web importer 缺 pnpm-lock</td><td>依赖锁定不完整</td><td>monorepo 层面待补</td></tr>
+            <tr><td>Workbench 单文件偏长</td><td>projects/[id]/page.tsx 含 Workbench + 各卡组件，导航略累</td><td>纯 churn、零功能收益，主动推迟（见 STATE 遗留债）</td></tr>
+            <tr><td>闭环失败摘要未下发</td><td>slice_completed 无 reason/summary，失败尸检面板只有兜底文案</td><td>reducer/UI 已预留 reason/summary/error 读法，后端补事件字段后自动生效</td></tr>
+            <tr><td>产出未做打字流</td><td>PRD/方案整块到达，切片是「片级完成」非 token 级</td><td>事件粒度是阶段/切片完成；streaming 待后端支持</td></tr>
+            <tr><td>SSE live 段无 seq</td><td>live 帧不带 id，只有重连补档段带 last_event_id</td><td>靠内容签名 seenEventKeys 去重兜住重放，已够用（见 sseConnect 注释）</td></tr>
           </tbody>
         </table>
-        <p class="body" style="margin-top:1.6rem">更远的未来：<strong>SSE 断线重连 + 事件回填</strong>（从 lastEventId 补齐中间态）· <strong>token 级流式产出</strong>（PRD/代码逐字显影，需后端改事件粒度）· <strong>page.tsx 组件拆分</strong>（等真正带来复用/协作收益时再做）· <strong>可观测台与工作台的 primitives 进一步抽包</strong>。</p>
+        <p class="body" style="margin-top:1.6rem">已落地：<strong>sseConnect 换票 + 断线重连 + last_event_id 补档</strong>、<strong>历史回看与实时共享 reduceClosedLoopEvent</strong>。更远的未来：<strong>闭环失败摘要下发</strong>（沙箱报错 / Reviewer 拒绝意见随 slice_completed 带回，尸检面板即有内容）· <strong>token 级流式产出</strong>（PRD/代码逐字显影，需后端改事件粒度）· <strong>Workbench 组件拆分</strong>（等真正带来复用/协作收益时再做）· <strong>各路由 primitives 进一步抽包</strong>。</p>
         <div class="callout"><span class="l">视觉血缘</span>这块工作台的 claude-style 暖色（ivory <span class="k">#faf9f5</span> + clay coral <span class="k">#d97757</span> + 暖 sage/terracotta），正是你眼前这份复盘页整套图版视觉的来源——同一套调色板，从产品界面延续到文档。</div>
       </div>
     </section>
 
     <div class="footnav">
       <a href="overview.html" id="foot-overview">← 返回总览</a>
-      <span class="meta">Atelier · 前端工作台 · 四工位 rail / 6 卡 / SSE 投影 / claude-style 暖色</span>
+      <span class="meta">Atelier · 前端工作台 · 三工位 rail / 闭环 DAG / sseConnect 换票 / claude-style 暖色</span>
       <a href="#intro-top">回到顶部 ↑</a>
     </div>
 

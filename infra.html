@@ -295,7 +295,7 @@
       <a href="#interview"><span class="num">Q</span>面试要点</a>
       <a href="#limits"><span class="num">…</span>限制与未来</a>
     </nav>
-    <div class="toc-foot">15 / 基础设施<br>docker-compose · RLS 多租户<br>迁移链 0001–0006 · eval 隔离库</div>
+    <div class="toc-foot">15 / 基础设施<br>docker-compose · RLS 多租户<br>迁移链 0001–0008 · eval 隔离库</div>
   </aside>
 
   <main class="content">
@@ -306,11 +306,11 @@
       <h1>基础设施</h1>
       <p class="lede">整个 Atelier 跑起来所依赖的「地基」——本地一条 <span class="k">make up</span> 拉起的容器栈，加一串按文件名有序的数据库迁移。</p>
       <div class="oneliner col">
-        一句话：<b>docker-compose</b> 用四个容器（Postgres+pgvector / NATS / Temporal / Redis）拼出运行时地基，<b>迁移链 0001–0006</b> 按文件名顺序把 schema 建齐，<b>Postgres RLS</b> 在数据库层强制租户隔离，<b>atelier_eval 独立库</b> 把评测数据物理隔开——所有操作都收敛到一组 <b>make</b> 目标。
+        一句话：<b>docker-compose</b> 用四个容器（Postgres+pgvector / NATS / Temporal / Redis）拼出运行时地基，<b>迁移链 0001–0008</b> 按文件名顺序把 schema 建齐，<b>Postgres RLS</b> 在数据库层强制租户隔离，<b>atelier_eval 独立库</b> 把评测数据物理隔开——所有操作都收敛到一组 <b>make</b> 目标。
       </div>
       <dl class="glance">
         <div><dt>容器服务</dt><dd>4 核心<small>Postgres · NATS · Temporal · Redis</small></dd></div>
-        <div><dt>迁移链</dt><dd>0001–0006<small>6 个 .sql · 按文件名有序</small></dd></div>
+        <div><dt>迁移链</dt><dd>0001–0008<small>8 个 .sql · 按文件名有序</small></dd></div>
         <div><dt>租户隔离</dt><dd>Postgres RLS<small>SET LOCAL app.tenant_id</small></dd></div>
         <div><dt>评测隔离</dt><dd>atelier_eval<small>独立库 · DROP→CREATE 重建</small></dd></div>
         <div><dt>操作面</dt><dd>make 目标<small>up / migrate / dev-*</small></dd></div>
@@ -325,7 +325,7 @@
         <p class="body">上层每个 Agent 都很聪明，但它们都站在同一块地基上：需要一个<strong>库</strong>存业务状态与向量记忆、一条<strong>消息总线</strong>派发任务、一个<strong>工作流引擎</strong>撑崩溃恢复、一个<strong>缓存</strong>做限流与短期上下文。基础设施这一层的工作，就是把这块地基<strong>一条命令拉起、可复现、可隔离</strong>。</p>
         <p class="body">它做对了三件容易被忽视、但一旦做错代价极高的事：</p>
         <ul class="tight">
-          <li class="body"><strong>一键复现</strong>——<span class="k">make up</span> 用 docker-compose 起容器、<span class="k">make migrate</span> 把 6 个迁移按文件名顺序灌进去，任何人任何机器得到<em>字节一致</em>的 schema。</li>
+          <li class="body"><strong>一键复现</strong>——<span class="k">make up</span> 用 docker-compose 起容器、<span class="k">make migrate</span> 把 8 个迁移按文件名顺序灌进去，任何人任何机器得到<em>字节一致</em>的 schema。</li>
           <li class="body"><strong>租户隔离下沉到数据库</strong>——不靠应用层「记得加 WHERE tenant_id」，而是用 Postgres <span class="k">RLS</span> 把隔离变成数据库层的强制策略：漏写 WHERE 也泄不了别人的数据。</li>
           <li class="body"><strong>评测数据物理隔离</strong>——评测会 DELETE/seed 记忆表，绝不能碰 dev/生产，于是 <span class="k">make migrate-eval</span> 专门重建一个 <span class="k">atelier_eval</span> 库。</li>
         </ul>
@@ -340,8 +340,8 @@
     <section id="static">
       <div class="col">
         <div class="eyebrow">图版 I · 静态架构</div>
-        <h2>四个容器撑起运行时，六个迁移建齐 schema</h2>
-        <p class="sub">先看 docker-compose 起了什么、谁连谁；再看数据库从 0001 到 0006 一层层建了哪些表、按什么约束收敛。</p>
+        <h2>四个容器撑起运行时，八个迁移建齐 schema</h2>
+        <p class="sub">先看 docker-compose 起了什么、谁连谁；再看数据库从 0001 到 0008 一层层建了哪些表、按什么约束收敛。</p>
       </div>
 
       <div class="legend">
@@ -399,8 +399,12 @@
       <p class="plate-cap col center"><b>怎么读：</b>上层是「消费者」——都是无状态进程，起停自如；中间一排是 docker-compose 拉起的<b>四类有状态容器</b>；下层是三块<b>具名数据卷</b>（<span class="k">down</span> 只停容器保留卷，<span class="k">down-v</span> 才清卷）。关键一点：Temporal 不自带库，它把状态也写进 Postgres，只是用 <b>DBNAME=temporal</b> 与业务库分开——同容器、不同库。</p>
 
       <div class="col">
-        <h3>迁移链：从 0001 到 0006，一层层把 schema 建齐</h3>
-        <p class="body"><span class="k">make migrate</span> 的本质极其朴素——<span class="k">for f in infra/migrations/*.sql</span> 逐个 <span class="k">psql &lt; f</span>。顺序<strong>完全由文件名决定</strong>（glob 字典序），所以文件名前缀 <span class="k">0001…0006</span> 就是执行序，后表能安全引用前表的外键。六个迁移各建一块地基：</p>
+        <p class="body"><strong>还有一处地基不在容器里——<span class="k">infra/keys/</span> 目录里的密钥</strong>：JWT 走 RS256 非对称签验，私钥 <span class="k">rs256_private.pem</span> 签发 access/refresh token、公钥 <span class="k">rs256_public.pem</span> 验签；<span class="k">token_encryption.key</span> 是一枚 Fernet 对称密钥，把增量 repo-OAuth 拿到的 GitHub token 加密后才落库。三者都 gitignore、本地生成，缺失时相关鉴权 / 绑 repo 端点直接报错——它们是地基的一部分，只是活在文件系统而非 docker-compose。</p>
+      </div>
+
+      <div class="col">
+        <h3>迁移链：从 0001 到 0008，一层层把 schema 建齐</h3>
+        <p class="body"><span class="k">make migrate</span> 的本质极其朴素——<span class="k">for f in infra/migrations/*.sql</span> 逐个 <span class="k">psql &lt; f</span>。顺序<strong>完全由文件名决定</strong>（glob 字典序），所以文件名前缀 <span class="k">0001…0008</span> 就是执行序，后表能安全引用前表的外键。八个迁移各建一块地基：</p>
       </div>
 
       <div class="plate">
@@ -415,17 +419,19 @@
               <tr><th>0004_memory</th><td class="a">agent_memory：情景 / 语义记忆，<span class="k">embedding vector(3072)</span> + generated tsvector</td><td class="b"><span class="k">HNSW(vector_cosine_ops)</span> m=16 ef=64 · <span class="k">GIN(tsv)</span> · (tenant_id, created_at DESC)</td></tr>
               <tr><th>0005_idempotency</th><td class="a">agent_task_results：task_id（uuid5 确定性）→ 缓存结果</td><td class="b">task_id PRIMARY KEY —— 幂等键；idx(created_at) 供过期清理</td></tr>
               <tr><th>0006_agent_sop</th><td class="a">agent_sop：程序性偏好，有界枚举槽位 + support_count 置信计数</td><td class="b"><span class="k">UNIQUE … NULLS NOT DISTINCT</span>（PG15+）—— 一槽一行、global 的 NULL 也参与唯一</td></tr>
+              <tr><th>0007_auth</th><td class="a">users.role 列（user/admin）+ refresh_tokens：RS256 双 token 的 refresh 落库（存 hash 不存明文）+ dev seed 升 admin</td><td class="b">role <span class="k">CHECK IN ('user','admin')</span>；refresh 存 sha256 哈希；RLS POLICY + idx(token_hash) / (user_id, created_at DESC)</td></tr>
+              <tr><th>0008_github_tokens</th><td class="a">github_oauth_tokens：增量 repo-OAuth 的 GitHub token 加密存储（Fernet 密文，可逆解回）</td><td class="b"><span class="k">user_id UNIQUE</span>（一用户一行，ON CONFLICT 覆盖）；对称加密（不同于 refresh 的单向哈希）；RLS POLICY tenant_isolation</td></tr>
             </tbody>
           </table>
         </div>
       </div>
-      <p class="plate-cap col center"><b>一眼看穿的分工：</b>0001 是<b>业务骨架 + RLS 地基</b>，0002 是<b>可重复种子</b>，0003–0006 各挂一个上层子系统（黑板 / 记忆 / 幂等 / SOP）。注意 0004 的 <b>vector + tsvector</b> 双索引就是「混合检索」的物理来源，0006 的 <b>NULLS NOT DISTINCT</b> 是 PG15+ 才有的约束——这两条是本层最值得讲的 schema 细节。</p>
+      <p class="plate-cap col center"><b>一眼看穿的分工：</b>0001 是<b>业务骨架 + RLS 地基</b>，0002 是<b>可重复种子</b>，0003–0008 各挂一个上层子系统（黑板 / 记忆 / 幂等 / SOP / 鉴权 / repo-token）。注意 0004 的 <b>vector + tsvector</b> 双索引就是「混合检索」的物理来源，0006 的 <b>NULLS NOT DISTINCT</b> 是 PG15+ 才有的约束，0007/0008 则给账号地基铺了<b>refresh 哈希</b>与<b>token 加密</b>两种存储手法——都是本层值得讲的 schema 细节。</p>
 
-      <div class="col"><h3>两张最有代表性的表长什么样</h3>
-        <p class="body">深到 schema 级——左边是<strong>RLS 保护的业务表</strong>（workflows，靠策略隔离租户），右边是<strong>向量记忆表</strong>（agent_memory，靠 HNSW+GIN 混合检索）。这两张分别是本层「隔离」与「检索」两个主题的物理体现：</p>
+      <div class="col"><h3>几张最有代表性的表长什么样</h3>
+        <p class="body">深到 schema 级——<strong>RLS 保护的业务表</strong>（workflows，靠策略隔离租户）、<strong>向量记忆表</strong>（agent_memory，靠 HNSW+GIN 混合检索），以及 M0/M1 账号地基补上的两张<strong>鉴权表</strong>（refresh_tokens 存哈希、github_oauth_tokens 存 Fernet 密文）——它们同样受 RLS 保护，是本层「隔离」「检索」「凭据」三个主题的物理体现：</p>
       </div>
       <div class="plate">
-        <div class="plate-head"><span class="t">图版 <b>I-c</b> · 数据库 Schema · RLS 业务表 vs 向量记忆表</span><span class="n">STATIC · schema</span></div>
+        <div class="plate-head"><span class="t">图版 <b>I-c</b> · 数据库 Schema · RLS 业务表 · 向量记忆表 · 鉴权表</span><span class="n">STATIC · schema</span></div>
         <div class="plate-body">
           <div class="schema">
             <div class="tbl">
@@ -449,10 +455,28 @@
               <div class="fld"><span>tsv</span><span class="ty">tsvector (generated)</span></div>
               <div class="fld idx"><span>HNSW(embedding) · GIN(tsv) · (tenant,created_at)</span><span class="ty">index ×3</span></div>
             </div>
+            <div class="tbl">
+              <div class="th"><span>refresh_tokens</span><span class="file">0007_auth.sql</span></div>
+              <div class="fld pk"><span class="nmn">id</span><span class="ty">uuid PK</span></div>
+              <div class="fld"><span>user_id</span><span class="ty">uuid FK → users</span></div>
+              <div class="fld cnt"><span>token_hash</span><span class="ty">text (sha256)</span></div>
+              <div class="fld"><span>expires_at / created_at</span><span class="ty">timestamptz</span></div>
+              <div class="fld cnt"><span>POLICY tenant_isolation</span><span class="ty">RLS</span></div>
+              <div class="fld idx"><span>idx(token_hash) · (user_id, created_at DESC)</span><span class="ty">index ×2</span></div>
+            </div>
+            <div class="tbl">
+              <div class="th"><span>github_oauth_tokens</span><span class="file">0008_github_tokens.sql</span></div>
+              <div class="fld pk"><span class="nmn">id</span><span class="ty">uuid PK</span></div>
+              <div class="fld"><span>user_id</span><span class="ty">uuid FK · UNIQUE</span></div>
+              <div class="fld cnt"><span>access_token_encrypted</span><span class="ty">text (Fernet)</span></div>
+              <div class="fld"><span>scopes</span><span class="ty">text</span></div>
+              <div class="fld"><span>created_at / updated_at</span><span class="ty">timestamptz</span></div>
+              <div class="fld cnt"><span>POLICY tenant_isolation</span><span class="ty">RLS</span></div>
+            </div>
           </div>
         </div>
       </div>
-      <p class="plate-cap col center"><b>差异的落点：</b>左表最后两行——<span class="k">ENABLE ROW LEVEL SECURITY</span> + <span class="k">POLICY … USING(tenant_id = current_tenant_id())</span>——就是租户隔离的全部；只要连接里 <b>SET app.tenant_id</b>，一切查询自动只见本租户的行。右表则用 <b>vector + tsvector + 三个索引</b> 换来「语义 + 全文」的混合召回。左边讲「隔离」，右边讲「检索」。</p>
+      <p class="plate-cap col center"><b>差异的落点：</b>workflows 最后两行——<span class="k">ENABLE ROW LEVEL SECURITY</span> + <span class="k">POLICY … USING(tenant_id = current_tenant_id())</span>——就是租户隔离的全部；只要连接里 <b>SET app.tenant_id</b>，一切查询自动只见本租户的行。agent_memory 用 <b>vector + tsvector + 三个索引</b> 换「语义 + 全文」混合召回。而 0007/0008 的两张鉴权表<b>同样挂 RLS POLICY</b>，且各用一种凭据存法：refresh_tokens 存 <b>单向哈希</b>（只需比对），github_oauth_tokens 存 <b>Fernet 密文</b>（后续要解回明文调 GitHub API）；此外 users 表新增 <span class="k">role</span> 列（user/admin）撑起 admin RBAC。</p>
     </section>
 
     <!-- ===== II 动态流程 ===== -->
@@ -470,7 +494,7 @@
             <div class="fstep"><div class="rail"><div class="dot">1</div><div class="line"></div></div>
               <div class="card"><div class="who">make up · 起容器</div><p class="what"><span class="k">docker compose up -d --wait</span>：Postgres / Redis / NATS / Temporal 四类容器起来。<span class="k">--wait</span> 阻塞到 <b>healthcheck 全绿</b>才返回。</p><p class="note">Postgres 首次启动会跑 init-scripts 建 vector 扩展；Temporal <span class="k">depends_on: postgres service_healthy</span> 等库就绪才起。</p></div></div>
             <div class="fstep" data-c="ochre"><div class="rail"><div class="dot">2</div><div class="line"></div></div>
-              <div class="card"><div class="who">make migrate · 灌 schema</div><p class="what"><span class="k">for f in infra/migrations/*.sql; do docker exec -i atelier-postgres psql -U atelier -d atelier &lt; $f; done</span> —— 按文件名 0001→0006 顺序执行。</p><p class="note">psql 直接跑容器内二进制，不依赖宿主机装 postgres 客户端。0002 靠 ON CONFLICT 幂等，重复 migrate 不报错。</p></div></div>
+              <div class="card"><div class="who">make migrate · 灌 schema</div><p class="what"><span class="k">for f in infra/migrations/*.sql; do docker exec -i atelier-postgres psql -U atelier -d atelier &lt; $f; done</span> —— 按文件名 0001→0008 顺序执行。</p><p class="note">psql 直接跑容器内二进制，不依赖宿主机装 postgres 客户端。0002 靠 ON CONFLICT 幂等，重复 migrate 不报错。</p></div></div>
             <div class="fstep" data-c="ochre"><div class="rail"><div class="dot">3</div><div class="line"></div></div>
               <div class="card"><div class="who">make migrate-eval · 建评测隔离库（可选）</div><p class="what">跑 evals/ 前先建：<span class="k">DROP DATABASE IF EXISTS atelier_eval → CREATE → 建扩展 → 套同批 migrations</span>。得到与主库 schema 一致的干净空库。</p><p class="note">评测会 DELETE/seed 记忆表，必须与 dev/生产物理隔离——迁移非幂等，靠「重建」绕开。</p></div></div>
             <div class="fstep" data-c="slate"><div class="rail"><div class="dot">4</div></div>
@@ -531,7 +555,7 @@ docker compose -f infra/docker/docker-compose.yml --env-file .env up -d --wait
  <span class="g">✔</span> Container atelier-temporal   <span class="g">Started</span>   <span class="c"># depends_on postgres service_healthy</span>
 ✓ 基础设施已启动  Postgres:5432  Redis:6379  NATS:4222</pre></div></div>
 
-          <div class="beat"><div class="when">t1 · 灌 schema</div><div><p class="what"><b>make migrate</b> 按文件名把 6 个迁移依次喂给容器内 psql。顺序 0001→0006 是外键能安全建立的前提。</p>
+          <div class="beat"><div class="when">t1 · 灌 schema</div><div><p class="what"><b>make migrate</b> 按文件名把 8 个迁移依次喂给容器内 psql。顺序 0001→0008 是外键能安全建立的前提。</p>
             <pre><span class="c">$ make migrate</span>
 → 执行 infra/migrations/0001_core_tables.sql   <span class="c"># users/projects/workflows + RLS</span>
 → 执行 infra/migrations/0002_dev_seed.sql      <span class="c"># dev 用户 …0001 / 项目 …0002</span>
@@ -539,6 +563,8 @@ docker compose -f infra/docker/docker-compose.yml --env-file .env up -d --wait
 → 执行 infra/migrations/0004_memory.sql        <span class="c"># vector(3072) + HNSW + GIN</span>
 → 执行 infra/migrations/0005_idempotency.sql
 → 执行 infra/migrations/0006_agent_sop.sql     <span class="c"># NULLS NOT DISTINCT</span>
+→ 执行 infra/migrations/0007_auth.sql          <span class="c"># users.role + refresh_tokens</span>
+→ 执行 infra/migrations/0008_github_tokens.sql <span class="c"># github_oauth_tokens (Fernet)</span>
 ✓ 迁移完成</pre></div></div>
 
           <div class="beat"><div class="when">t2 · 请求进事务</div><div><p class="what">前端 <b>POST /api/projects/&#123;id&#125;/features</b>。API 用 <span class="k">acquire_with_tenant</span> 开事务、SET LOCAL 租户 id，再 INSERT 一行 workflows。</p>
@@ -683,7 +709,7 @@ for f in migrations/*.sql: psql -d atelier_eval &lt; f  <span class="c"># 套同
       <div class="iv">
         <div class="ivcard"><div class="q">多租户为什么用 RLS 而非应用层过滤？</div><h4>安全默认打开</h4><p>RLS 把隔离下沉到 DB：<strong>漏写 WHERE 也泄不了</strong>。应用层过滤是「默认关闭、记得加才安全」，RLS 是「默认打开、要绕才需显式关」——安全的默认方向相反。</p></div>
         <div class="ivcard"><div class="q">SET vs SET LOCAL，差在哪？</div><h4>连接池复用泄漏</h4><p>连接会复用。会话级 SET 的 tenant_id 会残留给下一个请求 → 跨租户泄漏。<strong>SET LOCAL 事务级、结束自动恢复</strong>，把作用域钉死在单个事务内。</p></div>
-        <div class="ivcard"><div class="q">迁移顺序靠什么保证？</div><h4>文件名即执行序</h4><p><span class="k">*.sql</span> glob 字典序执行，前缀 0001–0006 就是顺序。<strong>纪律靠命名而非工具</strong>——简单但要求「新迁移必须递增编号」这条铁律不破。</p></div>
+        <div class="ivcard"><div class="q">迁移顺序靠什么保证？</div><h4>文件名即执行序</h4><p><span class="k">*.sql</span> glob 字典序执行，前缀 0001–0008 就是顺序。<strong>纪律靠命名而非工具</strong>——简单但要求「新迁移必须递增编号」这条铁律不破。</p></div>
         <div class="ivcard"><div class="q">评测隔离为什么另起一个库？</div><h4>物理隔离胜过约定</h4><p>评测会 DELETE/seed 记忆表。用独立 <span class="k">atelier_eval</span> 库，DROP→CREATE 重建——不同库天然读不到对方数据，比「小心别删错」强得多。</p></div>
         <div class="ivcard"><div class="q">幂等为什么做在消费层？</div><h4>确定性键 + 查表短路</h4><p>Temporal retry × JetStream redeliver 会重复投递。<strong>uuid5 确定性 task_id</strong> 做主键、消费前查表短路，不重跑 LLM。刻意不开 publish-dedup（会误删重试消息死锁）。</p></div>
         <div class="ivcard"><div class="q">起序靠 sleep 还是别的？</div><h4>healthcheck + depends_on</h4><p>不用人肉 sleep。容器自报 healthcheck、<span class="k">depends_on: service_healthy</span> 卡起序、<span class="k">up --wait</span> 阻塞到全绿——起序变成 compose 的声明式保证。</p></div>
@@ -712,7 +738,7 @@ for f in migrations/*.sql: psql -d atelier_eval &lt; f  <span class="c"># 套同
 
     <div class="footnav">
       <a href="overview.html" id="foot-overview">← 返回总览</a>
-      <span class="meta">Atelier · 基础设施 · docker-compose / RLS 多租户 / 迁移链 0001–0006 / eval 隔离库</span>
+      <span class="meta">Atelier · 基础设施 · docker-compose / RLS 多租户 / 迁移链 0001–0008 / eval 隔离库</span>
       <a href="#intro-top">回到顶部 ↑</a>
     </div>
 

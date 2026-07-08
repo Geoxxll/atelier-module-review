@@ -681,13 +681,14 @@ approved = <span class="b">test_result.passed</span> and (llm_approved or not bl
           <thead><tr><th>限制</th><th>影响</th><th>当前状态 / 缓解</th></tr></thead>
           <tbody>
             <tr><td>三臂盲评 A/B 未 powered</td><td>精确价值待更多 case 定量</td><td>β pilot 部分兑现（4 case 中性），blocked-by eval-harness</td></tr>
-            <tr><td>standalone，未接流水线</td><td>循环控制是函数调用，无 star-topology</td><td>level-1 验的是对抗有效性、不是编排机制；接 level-2 再重写</td></tr>
+            <tr><td>接入并行流水线（原 standalone）</td><td>循环控制原是函数调用、无 star-topology</td><td><strong>已接</strong>：<span class="k">orchestrator/</span> 落地（#92–#96，#96 Docker-gated 真 <span class="k">run_review_loop_task</span> 并行执行）；ADR-0015 cutover 接进生产 <span class="k">/features</span>（2026-07-06）</td></tr>
             <tr><td>不引入 human escalate</td><td>2 轮不收敛直接 failed</td><td>standalone PoC 不挂人等待；escalate 留到流水线层</td></tr>
             <tr><td>双层输入未生效</td><td>局部 AC 主裁 / 全局护栏尚未分层</td><td>依赖 level-2 Planner 切片落地后生效</td></tr>
             <tr><td>reviewer/tools.py 路径逃逸未加固</td><td>只读工具无 root 包含校验（同 planner 已修 pattern）</td><td>登记 follow-up #85，逐处核对、别复制粘贴 fix（ERROR.md #3）</td></tr>
           </tbody>
         </table>
-        <p class="body" style="margin-top:1.6rem">更远的未来：独立重跑原语已提到<strong>模块根</strong>，供 Merge 的<strong>波回归门</strong>共用同一套「干净容器集成分支重跑」——对抗 Reviewer 的独立重跑不是一次性设施，而是并行编排愿景里「合并候选回归」的复用叶子。level-1 先证「单 Coder × 单 Reviewer 修复闭环能堵 self-gaming」，才谈把它接进 Planner→并行 Coder→对抗 Reviewer→Merge 的完整管线。</p>
+        <p class="body" style="margin-top:1.6rem">独立重跑原语已提到<strong>模块根</strong>，供 Merge 的<strong>波回归门</strong>共用同一套「干净容器集成分支重跑」——对抗 Reviewer 的独立重跑不是一次性设施，而是并行编排里「合并候选回归」的复用叶子。level-1 先证「单 Coder × 单 Reviewer 修复闭环能堵 self-gaming」；<strong>如今这条闭环已接进完整管线</strong>——<span class="k">orchestrator/</span> 落地后（#92–#96），<strong>ADR-0015 cutover（2026-07-06）</strong>已把 Planner→并行 Coder→对抗 Reviewer→Merge 整链接进生产 <span class="k">/features</span>，Reviewer 现已集成、不再是 standalone PoC。</p>
+        <p class="body"><strong>双范式并存（ADR-0015）</strong>：这套<strong>闭环对抗式 Reviewer 是活跃路径</strong>；legacy <span class="k">services/reviewer-agent/</span>（Reflexion）原样保留、<strong>留作 A/B baseline</strong>，不再被新工作流调用——两条范式物理隔离、可读性/健壮性对照。</p>
         <div class="callout"><span class="l">β 实证台账</span>净 lift：修复前 <span class="k">−0.23</span>（三缺陷）→ 修复后 <span class="k">+0.11 / +0.10</span>（两次干净跑一致净有益）。价值<strong>规制依赖</strong>：弱 Coder × 强且修好的 Reviewer 收益显著、强 Coder 下中性、坏 Reviewer 净有害。归档见 <span class="k">docs/e2e-test-report/eval-closed-loop-ab-alpha-e2e-test-report.md §7–8</span> + <span class="k">ERROR.md #2</span>。</div>
       </div>
     </section>

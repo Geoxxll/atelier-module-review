@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atelier · 面试背诵卡</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,300;6..72,400;6..72,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Noto+Serif+SC:wght@300;400;500&family=Noto+Sans+SC:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root, [data-theme="light"] {
+  --bg:#faf9f5; --bg-alt:#f0eee6; --bg-card:#ffffff;
+  --ink:#141413; --ink-2:#3d3d3a; --ink-3:#5e5d59;
+  --border:rgba(20,20,19,0.10); --border-strong:rgba(20,20,19,0.18);
+  --accent:#d97757; --accent-deep:#c6613f; --accent-warm:#d4a27f;
+  --accent-subtle:rgba(217,119,87,0.10);
+  --good:#5a8f6b; --good-subtle:rgba(90,143,107,0.12);
+  --bad:#c0563d; --bad-subtle:rgba(192,86,61,0.12);
+  --ambient-cool:#b9c2dd; --glow:rgba(217,119,87,0.22);
+  --shadow-card:0 1px 2px rgba(20,20,19,0.04); --shadow-lift:0 12px 32px rgba(20,20,19,0.10);
+}
+[data-theme="dark"] {
+  --bg:#0d0d0c; --bg-alt:#16140f; --bg-card:#1b1916;
+  --ink:#f5f0e8; --ink-2:#c9c4ba; --ink-3:#8f8a80;
+  --border:rgba(245,240,232,0.10); --border-strong:rgba(245,240,232,0.20);
+  --accent:#e0855f; --accent-deep:#d97757; --accent-warm:#d4a27f;
+  --accent-subtle:rgba(224,133,95,0.14);
+  --good:#7bb08b; --good-subtle:rgba(123,176,139,0.15);
+  --bad:#d97a5f; --bad-subtle:rgba(217,122,95,0.15);
+  --ambient-cool:#5b6486; --glow:rgba(224,133,95,0.20);
+  --shadow-card:0 1px 2px rgba(0,0,0,0.4); --shadow-lift:0 12px 36px rgba(0,0,0,0.55);
+}
+:root{
+  --font-serif:"Newsreader","Noto Serif SC",Georgia,serif;
+  --font-sans:"Inter","Noto Sans SC",system-ui,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,monospace;
+  --measure:44rem; --page:1080px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-serif);font-size:1.16rem;line-height:1.6;
+  -webkit-font-smoothing:antialiased;transition:background .4s ease,color .4s ease}
+h1,h2,h3,h4{font-family:var(--font-serif);font-weight:400;letter-spacing:-0.01em;line-height:1.15}
+.mono{font-family:var(--font-mono);font-size:.7rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+a{color:var(--accent);text-decoration:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+
+/* nav */
+.nav{position:sticky;top:0;z-index:40;display:flex;align-items:center;justify-content:space-between;
+  padding:14px clamp(18px,5vw,40px);backdrop-filter:blur(12px);
+  background:color-mix(in srgb,var(--bg) 82%,transparent);border-bottom:1px solid var(--border)}
+.brand{font-family:var(--font-serif);font-size:1.15rem;display:flex;align-items:center;gap:8px}
+.brand .dot{width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.nav-right{display:flex;align-items:center;gap:10px}
+.tbtn{font-family:var(--font-mono);font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;
+  border:1px solid var(--border-strong);background:transparent;color:var(--ink);cursor:pointer;
+  padding:7px 12px;border-radius:9999px;transition:transform .2s,border-color .2s}
+.tbtn:hover{transform:translateY(-1px);border-color:var(--ink)}
+
+/* hero */
+.hero{position:relative;overflow:hidden;padding:clamp(56px,10vw,120px) clamp(18px,5vw,40px) clamp(40px,7vw,72px)}
+.hero-inner{max-width:var(--page);margin:0 auto;position:relative;z-index:1}
+.eyebrow{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:20px}
+.hero h1{font-size:clamp(2.4rem,6.5vw,4.4rem);font-weight:300;max-width:16ch;margin-bottom:22px}
+.hero p.lead{font-size:1.3rem;color:var(--ink-2);max-width:40rem}
+.hero .hint{margin-top:26px;font-size:.95rem;color:var(--ink-3);font-family:var(--font-sans)}
+.ambient{position:absolute;inset:-10% -5% 0;z-index:0;overflow:hidden;pointer-events:none;
+  -webkit-mask-image:linear-gradient(to bottom,#000 55%,transparent 94%);mask-image:linear-gradient(to bottom,#000 55%,transparent 94%)}
+.blob{position:absolute;border-radius:50%;filter:blur(64px)}
+.b1{width:44vw;height:44vw;top:-8%;right:2%;background:radial-gradient(circle,var(--accent) 0%,transparent 68%);opacity:.20;animation:d1 27s ease-in-out infinite}
+.b2{width:38vw;height:38vw;top:16%;right:24%;background:radial-gradient(circle,var(--accent-warm) 0%,transparent 70%);opacity:.16;animation:d2 33s ease-in-out infinite}
+.b3{width:36vw;height:36vw;top:2%;left:-6%;background:radial-gradient(circle,var(--ambient-cool) 0%,transparent 72%);opacity:.13;animation:d3 39s ease-in-out infinite}
+@keyframes d1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-6%,7%) scale(1.14)}}
+@keyframes d2{0%,100%{transform:translate(0,0) scale(1.05)}50%{transform:translate(9%,-5%) scale(.92)}}
+@keyframes d3{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(7%,8%) scale(1.18)}}
+
+/* section wrap */
+main{max-width:var(--page);margin:0 auto;padding:0 clamp(18px,5vw,40px) 120px}
+.toc{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 56px}
+.toc a{font-family:var(--font-mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);
+  border:1px solid var(--border);border-radius:9999px;padding:7px 13px;transition:all .2s}
+.toc a:hover{border-color:var(--ink);transform:translateY(-1px)}
+
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:20px;padding:clamp(22px,4vw,40px);
+  margin-bottom:34px;box-shadow:var(--shadow-card);scroll-margin-top:80px}
+.card-eyebrow{font-family:var(--font-mono);font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:12px}
+.card h2{font-size:clamp(1.6rem,3.5vw,2.15rem);font-weight:400;margin-bottom:8px}
+.card .sub{color:var(--ink-3);font-size:1rem;font-family:var(--font-sans);margin-bottom:24px}
+
+.block-label{font-family:var(--font-mono);font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);
+  display:flex;align-items:center;gap:8px;margin:28px 0 12px}
+.block-label::before{content:"";width:14px;height:1px;background:var(--accent)}
+
+.ask{border-left:3px solid var(--accent);background:var(--accent-subtle);border-radius:0 12px 12px 0;
+  padding:16px 20px;font-size:1.14rem;color:var(--ink);font-style:italic}
+.crisp{background:var(--bg-alt);border:1px solid var(--border);border-radius:14px;padding:20px 22px;font-size:1.12rem;line-height:1.7}
+.crisp strong{color:var(--accent-deep);font-weight:500;font-style:normal}
+[data-theme="dark"] .crisp strong{color:var(--accent)}
+
+.anchors{list-style:none;display:flex;flex-direction:column;gap:9px}
+.anchors li{position:relative;padding-left:22px;font-size:1rem;color:var(--ink-2);font-family:var(--font-sans);line-height:1.5}
+.anchors li::before{content:"↳";position:absolute;left:0;color:var(--accent)}
+
+/* generic interactive shell */
+.demo{border:1px dashed var(--border-strong);border-radius:16px;padding:clamp(16px,3vw,26px);background:var(--bg-alt)}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:20px}
+.seg{display:inline-flex;border:1px solid var(--border-strong);border-radius:9999px;overflow:hidden}
+.seg button{font-family:var(--font-sans);font-size:.86rem;font-weight:500;border:0;background:transparent;color:var(--ink-2);
+  padding:8px 16px;cursor:pointer;transition:all .2s}
+.seg button.on{background:var(--ink);color:var(--bg)}
+.btn{font-family:var(--font-sans);font-size:.86rem;font-weight:500;border:1px solid var(--border-strong);background:transparent;
+  color:var(--ink);padding:8px 16px;border-radius:9999px;cursor:pointer;transition:all .2s}
+.btn:hover{transform:translateY(-1px);border-color:var(--ink)}
+.btn.accent{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.accent:hover{background:var(--accent-deep)}
+.chk{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-sans);font-size:.86rem;color:var(--ink-2);cursor:pointer;user-select:none}
+.chk input{accent-color:var(--accent);width:16px;height:16px}
+
+/* loop ring */
+.ring{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin:8px 0 18px}
+.node{font-family:var(--font-sans);font-size:.9rem;font-weight:500;border:1.5px solid var(--border-strong);border-radius:14px;
+  padding:14px 20px;min-width:96px;text-align:center;background:var(--bg-card);transition:all .3s;color:var(--ink-2)}
+.node.active{border-color:var(--accent);color:var(--ink);box-shadow:0 0 0 4px var(--accent-subtle);transform:translateY(-2px)}
+.node.err{border-color:var(--bad);color:var(--bad);background:var(--bad-subtle)}
+.arrow{align-self:center;color:var(--ink-3);font-size:1.2rem}
+
+.panel{display:grid;grid-template-columns:1fr;gap:12px}
+.readout{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;font-family:var(--font-sans);font-size:.92rem;color:var(--ink-2);min-height:52px;transition:all .3s}
+.readout.good{border-color:var(--good);background:var(--good-subtle);color:var(--ink)}
+.readout.bad{border-color:var(--bad);background:var(--bad-subtle);color:var(--ink)}
+.metric-row{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px}
+.metric{flex:1;min-width:130px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+.metric .k{font-family:var(--font-mono);font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+.metric .v{font-family:var(--font-serif);font-size:1.9rem;font-weight:400;margin-top:2px}
+.metric .v.good{color:var(--good)} .metric .v.bad{color:var(--bad)}
+.bar{height:8px;border-radius:9999px;background:var(--border);overflow:hidden;margin-top:8px}
+.bar>i{display:block;height:100%;border-radius:9999px;background:var(--accent);transition:width .4s ease}
+
+/* sliders */
+.slider-row{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.slider-row label{font-family:var(--font-sans);font-size:.86rem;color:var(--ink-2);min-width:88px}
+input[type=range]{flex:1;accent-color:var(--accent);height:4px}
+.sval{font-family:var(--font-mono);font-size:.72rem;color:var(--accent-deep);min-width:52px;text-align:right}
+.dualbar{margin-top:10px}
+.dualbar .lbl{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:4px}
+.dualbar .track{height:12px;border-radius:9999px;background:var(--border);overflow:hidden;margin-bottom:12px}
+.dualbar .track>i{display:block;height:100%;transition:width .35s ease}
+.fill-open{background:var(--accent-warm)} .fill-closed{background:var(--good)}
+
+/* DAG */
+.dag{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center;margin-bottom:8px}
+.wave{display:flex;flex-direction:column;gap:8px}
+.wave .wtag{font-family:var(--font-mono);font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);text-align:center}
+.slice{font-family:var(--font-sans);font-size:.82rem;font-weight:500;border:1.5px solid var(--border-strong);border-radius:10px;
+  padding:10px 14px;text-align:center;background:var(--bg-card);color:var(--ink-2);transition:all .35s;min-width:78px}
+.slice.lit{border-color:var(--accent);color:var(--ink);box-shadow:0 0 0 4px var(--accent-subtle)}
+.slice.done{border-color:var(--good);color:var(--good);background:var(--good-subtle)}
+
+/* ladder */
+.ladder{display:flex;flex-direction:column-reverse;gap:8px;margin-top:12px}
+.rung{display:flex;align-items:center;gap:12px;border:1px solid var(--border);border-radius:12px;padding:12px 16px;background:var(--bg-card);transition:all .3s;opacity:.45}
+.rung.lit{opacity:1;border-color:var(--accent);box-shadow:var(--shadow-card);transform:translateX(4px)}
+.rung .tag{font-family:var(--font-mono);font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:9999px;white-space:nowrap}
+.tag.det{background:var(--good-subtle);color:var(--good)}
+.tag.llm{background:var(--accent-subtle);color:var(--accent-deep)}
+.tag.human{background:var(--bad-subtle);color:var(--bad)}
+.rung .txt{font-family:var(--font-sans);font-size:.9rem;color:var(--ink-2)}
+
+/* memory tabs */
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.tab{font-family:var(--font-sans);font-size:.86rem;font-weight:500;border:1px solid var(--border-strong);background:transparent;
+  color:var(--ink-2);padding:8px 16px;border-radius:9999px;cursor:pointer;transition:all .2s}
+.tab.on{background:var(--ink);color:var(--bg)}
+.mtable{display:grid;grid-template-columns:auto 1fr;gap:10px 18px;font-family:var(--font-sans);font-size:.94rem}
+.mtable .mk{font-family:var(--font-mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);align-self:center}
+.mtable .mv{color:var(--ink)}
+.chips{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 14px}
+.chip{font-family:var(--font-sans);font-size:.82rem;border-radius:9999px;padding:7px 14px;border:1px solid var(--border-strong)}
+.chip.fact{background:var(--accent-subtle);color:var(--accent-deep)}
+.chip.pref{background:var(--good-subtle);color:var(--good)}
+
+/* timeline */
+.tl{display:flex;flex-direction:column;gap:10px}
+.tlrow{display:grid;grid-template-columns:96px 1fr;gap:14px;align-items:center}
+.tlrow .who{font-family:var(--font-mono);font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);text-align:right}
+.tlrow .ev{border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-family:var(--font-sans);font-size:.88rem;background:var(--bg-card);color:var(--ink-2)}
+.tlrow .ev.idle{border-style:dashed;color:var(--bad);background:var(--bad-subtle)}
+.tlrow .ev.free{border-color:var(--good);background:var(--good-subtle);color:var(--ink)}
+
+.foot{text-align:center;color:var(--ink-3);font-family:var(--font-sans);font-size:.85rem;padding:40px 0 0}
+
+@media (max-width:640px){
+  body{font-size:1.06rem}
+  .metric{min-width:110px}
+  .tlrow{grid-template-columns:70px 1fr}
+  .ring{gap:6px}
+}
+@media (prefers-reduced-motion:reduce){.blob{animation:none!important}*{transition:none!important}}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <div class="brand"><span class="dot"></span>Atelier · 面试背诵卡</div>
+  <div class="nav-right">
+    <a class="tbtn" href="overview.html" style="text-decoration:none">← 系统总览</a>
+    <button class="tbtn" id="theme">☾ 暗</button>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="ambient" aria-hidden="true">
+    <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+  </div>
+  <div class="hero-inner">
+    <div class="eyebrow">通勤 5 分钟 · 每个概念一张交互图</div>
+    <h1>把亮点讲脆，不是背下来。</h1>
+    <p class="lead">7 张卡，每张 = 面试官会问什么 · 30 秒脆讲法 · 一个动手就懂的图 · 深挖时你靠什么扛。点、拖、切——机制自己会说话。</p>
+    <p class="hint">★ 星标两张（②饱和假象 · ⑤fact vs preference）是你 grill 里暴露的天花板缺口，重点练表达。</p>
+  </div>
+</header>
+
+<main>
+  <nav class="toc" aria-label="目录">
+    <a href="#c1">01 闭环 vs 开环</a>
+    <a href="#c2">02 饱和假象 ★</a>
+    <a href="#c3">03 对抗式 Reviewer</a>
+    <a href="#c4">04 并行 + 归并升级梯</a>
+    <a href="#c5">05 三类记忆 ★</a>
+    <a href="#c6">06 Eval 方法论</a>
+    <a href="#c7">07 Temporal 异步完成</a>
+  </nav>
+
+  <!-- ===== CARD 1 ===== -->
+  <section class="card" id="c1">
+    <div class="card-eyebrow">概念 01 · 核心</div>
+    <h2>闭环 Coder：一次性生成 vs 读改测自愈</h2>
+    <p class="sub">你项目的皇冠——不是「用了个框架」，而是「debug 过范式本身的失效模式」。</p>
+
+    <div class="block-label">面试官会问</div>
+    <div class="ask">"你把 open-loop 重构成 closed-loop，到底为什么更好？好在哪个具体机制上？"</div>
+
+    <div class="block-label">30 秒脆讲法</div>
+    <div class="crisp">开环<strong>一次性思考 + 全量丢出，出错没有第二次机会</strong>。闭环基于 ReAct 内核（思考→行动→观察→再思考），出错能<strong>读代码解析 error 自愈</strong>。但闭环不是免费午餐——我在 eval 里发现它有一个<strong>范式独有的死亡链</strong>：写代码出语法错误 → 语法错误<strong>挡住语义反馈</strong> → agent 失去「逻辑对不对」的口径 → 盲改 → 撞 max_iter → 零分。我上了<strong>收敛护栏（提交前语法闸门 + best-so-far 回退）</strong>，held-out 通过率 0.73 → 0.90。</div>
+
+    <div class="block-label">动手：跑一遍死亡链，再看护栏怎么救</div>
+    <div class="demo" id="demo1">
+      <div class="controls">
+        <div class="seg" data-role="mode">
+          <button data-v="open">开环</button>
+          <button data-v="closed" class="on">闭环</button>
+        </div>
+        <button class="btn" data-role="step">▸ 走一步</button>
+        <button class="btn accent" data-role="bug">💥 写入语法错误</button>
+        <label class="chk"><input type="checkbox" data-role="guard"> 开启 #57 护栏</label>
+      </div>
+      <div class="ring">
+        <div class="node" data-n="think">思考</div><span class="arrow">→</span>
+        <div class="node" data-n="act">行动</div><span class="arrow">→</span>
+        <div class="node" data-n="obs">观察</div><span class="arrow">↺</span>
+      </div>
+      <div class="panel">
+        <div class="readout" data-role="status">闭环模式：点「走一步」看 ReAct 循环转起来。</div>
+        <div class="metric-row">
+          <div class="metric"><div class="k">迭代 iteration</div><div class="v" data-role="iter">0</div><div class="bar"><i data-role="iterbar" style="width:0"></i></div></div>
+          <div class="metric"><div class="k">best-so-far 快照</div><div class="v" data-role="snap">—</div></div>
+          <div class="metric"><div class="k">最终得分</div><div class="v" data-role="score">—</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="block-label">深挖锚点</div>
+    <ul class="anchors">
+      <li>死亡链两部件：语法闸门（<code>ast.parse</code> 拒绝坏写回 + 回喂错误重写）· best-so-far 回退（return 最高分快照，不是语法废码）。</li>
+      <li>金句：「语义错误及零分<b>体现不出 closed-loop 的能力</b>」——这是评测思维，不是码农思维。</li>
+      <li>为什么是闭环独有的病：开环只思考一次就丢出，根本不进「迭代编辑」这条能被语法错误毒化反馈的循环。</li>
+    </ul>
+  </section>
+
+  <!-- ===== CARD 2 ===== -->
+  <section class="card" id="c2">
+    <div class="card-eyebrow">概念 02 · ★ 表达天花板</div>
+    <h2>饱和假象：模型变强，闭环就白做了？</h2>
+    <p class="sub">最危险的追问。内容你懂，练的是「30 秒讲脆」。</p>
+
+    <div class="block-label">面试官会问</div>
+    <div class="ask">"模型越来越强，一次生成成功率越来越高，你辛辛苦苦搭的闭环 + 护栏，边际价值不就趋近于零？"</div>
+
+    <div class="block-label">30 秒脆讲法（必背）</div>
+    <div class="crisp">换强模型 gap 收窄，乍看像闭环要过时——但那是<strong>测量假象（saturation illusion）</strong>。正确的控制变量是<strong>架构</strong>，得同时钉住 model <strong>和任务难度</strong>。我只升了 model 没升难度，两臂双双饱和到 1.0，gap 自然塌——这是<strong>天花板效应，不是架构失效</strong>。把任务重新加难去饱和，gap 立刻回来、放大到 <strong>+0.74</strong>。结论：<strong>闭环价值不随模型变强衰减，是任务饱和把它藏起来了。</strong></div>
+
+    <div class="block-label">动手：拖两根轴，看 gap 什么时候消失、什么时候回来</div>
+    <div class="demo" id="demo2">
+      <div class="slider-row"><label>模型强度</label><input type="range" min="1" max="3" step="1" value="3" data-role="model"><span class="sval" data-role="mv">强</span></div>
+      <div class="slider-row"><label>任务难度</label><input type="range" min="1" max="3" step="1" value="1" data-role="diff"><span class="sval" data-role="dv">简单</span></div>
+      <div class="dualbar">
+        <div class="lbl"><span>开环 one-shot</span><span data-role="opennum">—</span></div>
+        <div class="track"><i class="fill-open" data-role="openfill" style="width:0"></i></div>
+        <div class="lbl"><span>闭环 self-heal</span><span data-role="closednum">—</span></div>
+        <div class="track"><i class="fill-closed" data-role="closedfill" style="width:0"></i></div>
+      </div>
+      <div class="readout" data-role="verdict" style="margin-top:6px"></div>
+    </div>
+
+    <div class="block-label">深挖锚点</div>
+    <ul class="anchors">
+      <li>强模型 × 简单任务 → 两臂撞 1.0，gap≈0 = <b>假象</b>；强模型 × 难任务 → gap 反而放大。</li>
+      <li>戳破手法：<b>加 SWE 式难题去饱和</b>，重跑子集 n=3，gap +0.09 → <b>+0.74</b>。</li>
+      <li>一句镇场：「先验：架构改进要证明它<b>不随模型能力衰减</b>；饱和任务只是掩盖，不是消解。」</li>
+    </ul>
+  </section>
+
+  <!-- ===== CARD 3 ===== -->
+  <section class="card" id="c3">
+    <div class="card-eyebrow">概念 03 · 范式</div>
+    <h2>对抗式 Reviewer：防 self-gaming</h2>
+    <p class="sub">对抗 = 干净屋独立重跑 + 上下文隔离。Agent 给自己作业打分，天然不可信。</p>
+
+    <div class="block-label">面试官会问</div>
+    <div class="ask">"你这 Reviewer 为什么叫『对抗式』？跟『让另一个 LLM 帮我 review』有什么本质区别？你在防谁作弊？"</div>
+
+    <div class="block-label">30 秒脆讲法</div>
+    <div class="crisp">成功判定<strong>不信 Coder 自测</strong>（self-gaming：agent 给自己打分不可信）。两个隔离：① <strong>干净容器独立重跑</strong>——防 Coder 把容器跑脏让测试假绿（如把 API key 塞全局环境变量不写 .env，脏容器过、干净容器一重跑露馅）；② <strong>上下文隔离</strong>——不喂 Coder 推理链，防 Reviewer 被带偏、丧失独立视角。</div>
+
+    <div class="block-label">动手：同一个作弊，两种 Reviewer 的结果天差地别</div>
+    <div class="demo" id="demo3">
+      <div class="controls">
+        <div class="seg" data-role="mode">
+          <button data-v="naive" class="on">朴素 review（同容器）</button>
+          <button data-v="adv">对抗式（干净容器）</button>
+        </div>
+        <label class="chk"><input type="checkbox" data-role="iso" checked> 上下文隔离</label>
+      </div>
+      <div class="readout" data-role="scene" style="margin-bottom:10px">场景：Coder 把 <code>API_KEY</code> 设成全局环境变量（没写进 .env）就交了。</div>
+      <div class="metric-row">
+        <div class="metric"><div class="k">测试结果</div><div class="v" data-role="test">—</div></div>
+        <div class="metric"><div class="k">Reviewer 视角</div><div class="v" style="font-size:1.05rem" data-role="view">—</div></div>
+      </div>
+      <div class="readout" data-role="verdict3" style="margin-top:12px"></div>
+    </div>
+
+    <div class="block-label">深挖锚点</div>
+    <ul class="anchors">
+      <li>eval 曲折（最亮）：首跑对抗式<b>净有害 −0.23</b> → 查出是<b>我 Reviewer 的 bug 不是范式</b>（反射性拒绝 / 不提交结构化裁决）。</li>
+      <li>regime 依赖：<b>弱 Coder × 强 Reviewer 收益最大（+0.14）</b>；强 Coder 下中性；坏 Reviewer 净有害（churn）。</li>
+      <li>meta 教训：eval 暴露的问题分两类——<b>测评本身的问题（样例饱和）→改 eval</b> vs <b>被测系统的问题→加护栏</b>。</li>
+    </ul>
+  </section>
+
+  <!-- ===== CARD 4 ===== -->
+  <section class="card" id="c4">
+    <div class="card-eyebrow">概念 04 · 并行</div>
+    <h2>并行编排 + 确定性归并升级梯</h2>
+    <p class="sub">切 / 并 / 合三段都为「可行性」服务。确定性高危环节，能用确定性解的绝不引入 LLM。</p>
+
+    <div class="block-label">面试官会问</div>
+    <div class="ask">"并行开发最大的敌人是两片各自都对、合起来却冲突。你怎么保证切片能并行、又能合得起来？冲突了不就卡死？"</div>
+
+    <div class="block-label">30 秒脆讲法</div>
+    <div class="crisp"><strong>切</strong>：Planner 逻辑切分给 blocked-by 依赖，「不为并行而并行、该串行绝不破坏」，软自纠 + 硬自纠（查环依赖/需求覆盖/脚手架）。<strong>并</strong>：wave 内 fan-out，每片独立 worktree。<strong>合</strong>：依次并入集成头，<strong>只接受测试+回归全绿</strong>。冲突不是 give up，而是<strong>确定性起步的升级梯</strong>：git 3-way 干净合 → LLM 调和文本冲突 → fix-Coder 修门红（≤1 次）→ 人工闸。Merge <strong>只上报、从不做决定</strong>。</div>
+
+    <div class="block-label">动手一：波次 fan-out（点播放）</div>
+    <div class="demo" id="demo4a" style="margin-bottom:16px">
+      <div class="controls"><button class="btn accent" data-role="play">▸ 播放波次</button><button class="btn" data-role="reset">重置</button></div>
+      <div class="dag">
+        <div class="wave"><div class="wtag">Wave 1</div><div class="slice" data-s="s1">S1 脚手架</div></div>
+        <span class="arrow">→</span>
+        <div class="wave"><div class="wtag">Wave 2 · 并行</div><div class="slice" data-s="s2">S2</div><div class="slice" data-s="s3">S3</div></div>
+        <span class="arrow">→</span>
+        <div class="wave"><div class="wtag">Wave 3</div><div class="slice" data-s="s4">S4</div></div>
+      </div>
+      <div class="readout" data-role="dagstatus" style="margin-top:12px">S2、S3 都 blocked-by S1 → 同一波并行；S4 blocked-by S2+S3 → 等前驱<b>合进集成头</b>才就绪。</div>
+    </div>
+
+    <div class="block-label">动手二：冲突严重度 → 升到第几级</div>
+    <div class="demo" id="demo4b">
+      <div class="slider-row"><label>冲突严重度</label><input type="range" min="0" max="3" step="1" value="0" data-role="sev"><span class="sval" data-role="sevv">无冲突</span></div>
+      <div class="ladder">
+        <div class="rung" data-lv="0"><span class="tag det">确定性</span><span class="txt">git 3-way 干净合 → 零 LLM 直接接受</span></div>
+        <div class="rung" data-lv="1"><span class="tag llm">LLM</span><span class="txt">reconciler：base/ours/theirs per-file 单发调和<b>文本冲突</b></span></div>
+        <div class="rung" data-lv="2"><span class="tag llm">Agent</span><span class="txt">升级梯 L1 = fix-Coder：闭环重跑修<b>回归门红</b>（恰好 ≤1 次）</span></div>
+        <div class="rung" data-lv="3"><span class="tag human">人</span><span class="txt">L3 <code>resolve_merge</code> 人工闸</span></div>
+      </div>
+    </div>
+
+    <div class="block-label">深挖锚点</div>
+    <ul class="anchors">
+      <li>就算 Planner 切错、把该串行的并行了，<b>wave 回归门因「合不绿」兜住</b>——错误止于 merge。</li>
+      <li>精度点：reconciler 治<b>文本冲突</b>，fix-Coder 治<b>回归门红（语义/测试失败）</b>——两根轴，不是一根。</li>
+      <li>确定性买到什么：强一致 + 可重放；把不确定性（LLM）关在「确定性真解不了」之后才放出来。</li>
+    </ul>
+  </section>
+
+  <!-- ===== CARD 5 ===== -->
+  <section class="card" id="c5">
+    <div class="card-eyebrow">概念 05 · ★ 表达天花板</div>
+    <h2>三类记忆：同源，凭什么拆三套</h2>
+    <p class="sub">情景 / 语义 / 程序性，按信号源 · 形态 · 注入语义刻意切分。最深一层：fact vs preference。</p>
+
+    <div class="block-label">面试官会问</div>
+    <div class="ask">"语义记忆和 SOP 都来自 PM 对话，不就是一回事吗？为什么非要两套系统？这是不是过度设计？"</div>
+
+    <div class="block-label">动手一：切三个标签，看三维对照</div>
+    <div class="demo" id="demo5a" style="margin-bottom:16px">
+      <div class="tabs" data-role="tabs">
+        <button class="tab on" data-t="epi">情景 episodic</button>
+        <button class="tab" data-t="sem">语义 semantic</button>
+        <button class="tab" data-t="pro">程序性 SOP</button>
+      </div>
+      <div class="mtable" data-role="mt"></div>
+    </div>
+
+    <div class="block-label">动手二：fact vs preference —— 为什么注入通道必须相反</div>
+    <div class="demo" id="demo5b">
+      <div class="chips">
+        <span class="chip fact">fact：用户在做 B2B 报销 SaaS</span>
+        <span class="chip pref">preference：PRD 别出 User Story 段</span>
+      </div>
+      <div class="controls">
+        <div class="seg" data-role="mode">
+          <button data-v="split" class="on">正确：分两套</button>
+          <button data-v="merge">如果强行合并</button>
+        </div>
+      </div>
+      <div class="readout" data-role="out5"></div>
+    </div>
+
+    <div class="block-label">深挖锚点</div>
+    <ul class="anchors">
+      <li><b>fact = 描述性</b>：只提供背景不发号施令 → 弱注入（可能过期，冲突以本次为准），绝不覆盖当前设计。</li>
+      <li><b>preference = 规定性</b>：主动塑造产出形状 → 进 <code>实时指令 &gt; SOP &gt; Skill</code> 优先级链，职责是「用户沉默时的默认」。</li>
+      <li>更新机制差异（次要但要提）：语义紧跟事实、冲突以本次为主；SOP 有<b>置信计数器缓冲</b>抗抖动。</li>
+    </ul>
+  </section>
+
+  <!-- ===== CARD 6 ===== -->
+  <section class="card" id="c6">
+    <div class="card-eyebrow">概念 06 · 方法论脊柱</div>
+    <h2>Eval：怎么破「AI 给 AI 打分」的循环</h2>
+    <p class="sub">eval 的最强火力穿在①②身上——是它帮你发现死亡链、量化 Reviewer regime。</p>
+
+    <div class="block-label">面试官会问</div>
+    <div class="ask">"你用 LLM 当裁判，那不就是让 AI 给 AI 打分、循环论证吗？你怎么破这个循环？"</div>
+
+    <div class="block-label">30 秒脆讲法</div>
+    <div class="crisp">硬判定不靠 LLM——来自 <strong>held-out oracle</strong>（agent 没见过的确定性测试）；<strong>LLM 只做软质量上色、不下硬裁决</strong>，再加盲评 + 顺序 counterbalance。而且每加一层能力必须<strong>单变量 A/B</strong>——我自己就踩过：α 评测同时变了架构和模型强度，差点得出「闭环没用」的错误结论，拆开才发现是<strong>饱和假象</strong>。</div>
+
+    <div class="block-label">动手：先看循环，再看 oracle 怎么斩断它</div>
+    <div class="demo" id="demo6">
+      <div class="controls">
+        <div class="seg" data-role="mode">
+          <button data-v="circular" class="on">只用 LLM 裁判</button>
+          <button data-v="oracle">加 held-out oracle</button>
+        </div>
+      </div>
+      <div class="ring" data-role="ring6">
+        <div class="node" data-n="a">Coder 产出</div><span class="arrow">→</span>
+        <div class="node" data-n="b">LLM 裁判</div><span class="arrow">→</span>
+        <div class="node" data-n="c">得分</div>
+      </div>
+      <div class="readout" data-role="out6"></div>
+      <div class="block-label" style="margin-top:18px">单变量 A/B</div>
+      <div class="controls">
+        <button class="btn" data-role="one">加 1 个变体</button>
+        <button class="btn" data-role="two">加 2 个变体</button>
+      </div>
+      <div class="readout" data-role="ab6"></div>
+    </div>
+
+    <div class="block-label">深挖锚点</div>
+    <ul class="anchors">
+      <li>六接缝 harness（面试前记名字）：<code>case / variant / judge / metric / fixture / recorder / harness</code>，内核不 import 任何 agent。</li>
+      <li>归因反例（现成）：Q3 的 α 混淆「架构×模型强度」就是一次多变量污染归因事故。</li>
+      <li>台账（LEDGER）：改 prompt/skill/SOP 后连同 commit + 模型一起回看趋势。</li>
+    </ul>
+  </section>
+
+  <!-- ===== CARD 7 ===== -->
+  <section class="card" id="c7">
+    <div class="card-eyebrow">概念 07 · 分布式基座</div>
+    <h2>Temporal async completion + 确定性铁律</h2>
+    <p class="sub">③ 并行编排器本身就跑在 Temporal 上。这是二线咬钩后端面试官的钩子。</p>
+
+    <div class="block-label">面试官会问</div>
+    <div class="ask">"Activity 派任务给 Agent，为什么不同步等它干完？还有 Temporal 那条『workflow 里不准 uuid4/now』是为什么？"</div>
+
+    <div class="block-label">30 秒脆讲法</div>
+    <div class="crisp">Activity <strong>不同步等</strong>：NATS at-least-once 派发后 <strong>worker 立刻释放</strong>去处理别的（吞吐）；Agent 异步完成经 <strong>async completion 回写 event history</strong> + 放新 task 通知 worker 读结果。确定性铁律：有副作用 I/O 必须 Activity 包裹，workflow 只放确定性编排——<strong>回放时从 event history 拿已记录结果、不重入</strong>（否则 uuid4/now 回放值不同→历史不匹配→非确定性错），所以 task_id 用 <strong>uuid5</strong>。</div>
+
+    <div class="block-label">动手：切两种模式，看 worker 那条命</div>
+    <div class="demo" id="demo7">
+      <div class="controls">
+        <div class="seg" data-role="mode">
+          <button data-v="sync" class="on">同步阻塞</button>
+          <button data-v="async">async completion</button>
+        </div>
+      </div>
+      <div class="tl" data-role="tl7"></div>
+    </div>
+
+    <div class="block-label">深挖锚点</div>
+    <ul class="anchors">
+      <li>async completion 三件套：<code>task_token</code> 塞 payload · <code>raise_complete_async()</code> 挂起 · <code>handle.complete()</code> 回填。</li>
+      <li>幂等：消费层按 <code>task_id</code>(uuid5) 查结果表，命中即短路、不重跑 LLM。</li>
+      <li>与「自己写状态机 + 重试」的区别：Temporal 免费给你<b>持久化 + 断点重放 + 可溯源</b>的 event history。</li>
+    </ul>
+  </section>
+
+  <p class="foot">配套：<code>docs/interview/grill-2026-07-19-resume-highlights.md</code> · 全部机制取自真实源码，非杜撰。</p>
+</main>
+
+<script>
+(function(){
+  "use strict";
+  var $=function(s,r){return (r||document).querySelector(s)};
+  var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+
+  /* theme */
+  var root=document.documentElement, tb=$("#theme");
+  function setTheme(t){root.setAttribute("data-theme",t);tb.textContent=t==="dark"?"☀ 亮":"☾ 暗";}
+  try{var saved=localStorage.getItem("atelier-theme");if(saved)setTheme(saved);
+    else if(window.matchMedia&&matchMedia("(prefers-color-scheme:dark)").matches)setTheme("dark");}catch(e){}
+  tb.addEventListener("click",function(){var t=root.getAttribute("data-theme")==="dark"?"light":"dark";setTheme(t);try{localStorage.setItem("atelier-theme",t);}catch(e){}});
+
+  function seg(demo,cb){
+    var s=$('.seg[data-role="mode"]',demo); if(!s)return;
+    $$("button",s).forEach(function(b){b.addEventListener("click",function(){
+      $$("button",s).forEach(function(x){x.classList.remove("on")});b.classList.add("on");cb(b.getAttribute("data-v"));});});
+  }
+
+  /* ---------- CARD 1 ---------- */
+  (function(){
+    var d=$("#demo1"); if(!d)return;
+    var mode="closed",guard=false,iter=0,best=0,phase=0,doom=false,order=["think","act","obs"];
+    var nodes={think:$('[data-n=think]',d),act:$('[data-n=act]',d),obs:$('[data-n=obs]',d)};
+    var status=$('[data-role=status]',d),iterEl=$('[data-role=iter]',d),iterbar=$('[data-role=iterbar]',d),
+        snap=$('[data-role=snap]',d),score=$('[data-role=score]',d);
+    function paint(){
+      Object.keys(nodes).forEach(function(k){nodes[k].classList.remove("active","err")});
+      if(mode==="closed"){var k=order[phase%3];nodes[k].classList.add("active");if(doom&&k==="obs")nodes.obs.classList.add("err");}
+      iterEl.textContent=iter; iterbar.style.width=Math.min(100,iter/6*100)+"%";
+      snap.textContent=best?best.toFixed(2):"—";
+    }
+    function reset(){iter=0;best=0;phase=0;doom=false;score.textContent="—";score.className="v";status.className="readout";paint();}
+    seg(d,function(v){mode=v;reset();status.textContent=v==="open"?"开环模式：只思考一次 → 全量丢出。出错？没有第二次机会。":"闭环模式：点「走一步」看 ReAct 循环转起来。";});
+    $('[data-role=step]',d).addEventListener("click",function(){
+      if(mode==="open"){status.className="readout bad";status.textContent="开环：一次性生成完就结束了。若这次错了 → 直接失败，无自愈。";score.textContent="0.55";score.className="v";return;}
+      phase++;
+      if(doom){
+        if(guard){
+          iter++; best=Math.max(best,0.90);
+          status.className="readout good";
+          status.textContent="🛡️ 语法闸门拦下坏写回（不提交）→ 回喂错误让 agent 重写 → best-so-far 已存 0.90 快照。";
+          if(iter>=3){score.textContent="0.90";score.className="v good";status.textContent="✅ 返回最佳快照，不是语法废码。得分 0.90。";}
+        }else{
+          iter++;
+          status.className="readout bad";
+          status.textContent="❌ 语法错误挡住语义反馈 → agent 不知逻辑对不对 → 盲改（第 "+iter+" 轮）…";
+          if(iter>=6){score.textContent="0.00";score.className="v bad";status.textContent="💀 撞 max_iterations，零分且低于开环——闭环独有的死亡链。";}
+        }
+      }else{
+        best=Math.max(best,0.6+phase*0.05);
+        status.className="readout";status.textContent="闭环第 "+phase+" 步："+order[(phase-1)%3]+" → 有进展，best-so-far 更新中。";
+        if(phase>=3){best=Math.max(best,0.9);score.textContent="0.90";score.className="v good";status.textContent="✅ 读→改→跑测试→观察→自纠，自测绿。得分 0.90。";}
+      }
+      paint();
+    });
+    $('[data-role=bug]',d).addEventListener("click",function(){
+      if(mode==="open"){status.className="readout bad";status.textContent="开环一次性生成，出错也无从修起——正是闭环想解决的。";return;}
+      doom=true;iter=0;score.textContent="—";score.className="v";
+      status.className="readout";status.textContent="已注入语法错误。现在连点几次「走一步」——"+(guard?"看护栏怎么救。":"看死亡链怎么发生。");paint();
+    });
+    $('[data-role=guard]',d).addEventListener("change",function(e){guard=e.target.checked;
+      status.textContent=guard?"护栏已开：注入语法错误后走一步，看它被拦下 + 快照兜底。":"护栏已关：注入语法错误后走一步，看盲改死循环。";});
+    reset();
+  })();
+
+  /* ---------- CARD 2 ---------- */
+  (function(){
+    var d=$("#demo2"); if(!d)return;
+    var mEl=$('[data-role=model]',d),dEl=$('[data-role=diff]',d),mv=$('[data-role=mv]',d),dv=$('[data-role=dv]',d),
+        of=$('[data-role=openfill]',d),cf=$('[data-role=closedfill]',d),on=$('[data-role=opennum]',d),cn=$('[data-role=closednum]',d),
+        vd=$('[data-role=verdict]',d);
+    var mnames=["","弱","中","强"],dnames=["","简单","中等","困难"];
+    function clamp(x){return Math.max(0,Math.min(1,x))}
+    function calc(){
+      var m=+mEl.value,df=+dEl.value;
+      mv.textContent=mnames[m];dv.textContent=dnames[df];
+      var open=clamp(0.55+0.23*(m-1)-0.30*(df-1));
+      var closed=clamp(0.62+0.20*(m-1)-0.09*(df-1));
+      of.style.width=(open*100)+"%";cf.style.width=(closed*100)+"%";
+      on.textContent=open.toFixed(2);cn.textContent=closed.toFixed(2);
+      var gap=closed-open;
+      if(open>=0.95&&closed>=0.95){vd.className="readout bad";vd.textContent="⚠️ 饱和假象：两臂都撞 1.0 天花板，gap≈0 被掩盖。这不是架构失效，是任务太简单。";}
+      else if(gap>=0.30){vd.className="readout good";vd.textContent="✅ 去饱和：闭环优势显现，gap = +"+gap.toFixed(2)+"。难任务才照出闭环的自愈价值。";}
+      else{vd.className="readout";vd.textContent="过渡区：gap = +"+gap.toFixed(2)+"。往「强模型 × 困难任务」拖，看 gap 放大。";}
+    }
+    mEl.addEventListener("input",calc);dEl.addEventListener("input",calc);calc();
+  })();
+
+  /* ---------- CARD 3 ---------- */
+  (function(){
+    var d=$("#demo3"); if(!d)return;
+    var mode="naive",iso=true;
+    var test=$('[data-role=test]',d),view=$('[data-role=view]',d),vd=$('[data-role=verdict3]',d);
+    function render(){
+      if(mode==="naive"){
+        test.textContent="✅ 绿";test.className="v good";
+        vd.className="readout bad";vd.textContent="🚨 假绿：同一个脏容器里，全局环境变量还在，测试当然过——self-gaming 被漏过。";
+      }else{
+        test.textContent="❌ 红";test.className="v bad";
+        vd.className="readout good";vd.textContent="🎯 逮住：干净容器环境重置，API_KEY 不存在 → KeyError → 真相暴露。";
+      }
+      if(iso){view.textContent="独立视角";view.className="v";}
+      else{view.textContent="被 Coder 带偏";view.className="v bad";
+        vd.textContent+=" 且没做上下文隔离 → Reviewer 读了 Coder 的推理链，容易附和「我觉得没问题」。";}
+    }
+    seg(d,function(v){mode=v;render();});
+    $('[data-role=iso]',d).addEventListener("change",function(e){iso=e.target.checked;render();});
+    render();
+  })();
+
+  /* ---------- CARD 4 ---------- */
+  (function(){
+    var d=$("#demo4a"); if(!d)return;
+    var slices={s1:$('[data-s=s1]',d),s2:$('[data-s=s2]',d),s3:$('[data-s=s3]',d),s4:$('[data-s=s4]',d)};
+    var st=$('[data-role=dagstatus]',d),timer=null;
+    function clearAll(){Object.keys(slices).forEach(function(k){slices[k].classList.remove("lit","done")});}
+    function reset(){if(timer){clearTimeout(timer);timer=null;}clearAll();st.innerHTML="S2、S3 都 blocked-by S1 → 同一波并行；S4 blocked-by S2+S3 → 等前驱<b>合进集成头</b>才就绪。";}
+    function play(){
+      reset();
+      var steps=[
+        function(){slices.s1.classList.add("lit");st.textContent="Wave 1：S1 脚手架单独跑（greenfield 起始片）。";},
+        function(){slices.s1.classList.remove("lit");slices.s1.classList.add("done");slices.s2.classList.add("lit");slices.s3.classList.add("lit");st.innerHTML="Wave 2：S1 已<b>合进集成头</b> → S2、S3 就绪，<b>并行</b>各自独立 worktree。";},
+        function(){slices.s2.classList.remove("lit");slices.s3.classList.remove("lit");slices.s2.classList.add("done");slices.s3.classList.add("done");slices.s4.classList.add("lit");st.textContent="Wave 3：S2、S3 都合绿后，S4 才就绪。就绪 = 前驱全 merged，不是跑完。";},
+        function(){slices.s4.classList.remove("lit");slices.s4.classList.add("done");st.textContent="✅ 全部合进集成头，集成分支自身测试+回归全绿。";}
+      ];
+      var i=0;(function next(){steps[i]();i++;if(i<steps.length)timer=setTimeout(next,1100);})();
+    }
+    $('[data-role=play]',d).addEventListener("click",play);
+    $('[data-role=reset]',d).addEventListener("click",reset);
+  })();
+  (function(){
+    var d=$("#demo4b"); if(!d)return;
+    var sv=$('[data-role=sev]',d),lbl=$('[data-role=sevv]',d),rungs=$$(".rung",d);
+    var names=["无冲突","文本冲突","语义/门红","难解"];
+    function render(){
+      var lv=+sv.value;lbl.textContent=names[lv];
+      rungs.forEach(function(r){r.classList.toggle("lit",+r.getAttribute("data-lv")<=lv);});
+    }
+    sv.addEventListener("input",render);render();
+  })();
+
+  /* ---------- CARD 5 ---------- */
+  (function(){
+    var d=$("#demo5a"); if(!d)return;
+    var data={
+      epi:{"信号源":"Coder 实现 trajectory（含 review fix）","形态":"向量 + RRF 混合检索","为何这形态":"情景发散，相似度检索 top-n 最合逻辑","注入":"整条 trajectory 闭环后蒸馏","谁读":"Coder"},
+      sem:{"信号源":"PM 对话里的 user fact","形态":"向量","为何这形态":"用户事实发散，检索 top-n 尽量了解用户","注入":"阶段间蒸馏 → 弱背景块","谁读":"PM"},
+      pro:{"信号源":"PM 对话里的口味偏好","形态":"确定性 schema 结构化表 + 置信计数器","为何这形态":"程序流程固定，需固定表结构、精确查询","注入":"compose_prompt 偏好层（进优先级链）","谁读":"PM"}
+    };
+    var mt=$('[data-role=mt]',d),tabs=$$(".tab",d);
+    function render(t){
+      var o=data[t];mt.innerHTML="";
+      Object.keys(o).forEach(function(k){
+        var a=document.createElement("div");a.className="mk";a.textContent=k;
+        var b=document.createElement("div");b.className="mv";b.textContent=o[k];
+        mt.appendChild(a);mt.appendChild(b);
+      });
+    }
+    tabs.forEach(function(tb){tb.addEventListener("click",function(){tabs.forEach(function(x){x.classList.remove("on")});tb.classList.add("on");render(tb.getAttribute("data-t"));});});
+    render("epi");
+  })();
+  (function(){
+    var d=$("#demo5b"); if(!d)return;
+    var out=$('[data-role=out5]',d);
+    function render(v){
+      if(v==="split"){out.className="readout good";
+        out.innerHTML="✅ 正确：<b>fact 弱注入背景块</b>（可能过期、冲突以本次为准，绝不覆盖当前设计）；<b>preference 进优先级链当规则</b>（塑造沉默时的默认）。描述性 vs 规定性，天然两套。";}
+      else{out.className="readout bad";
+        out.innerHTML="🚨 合并 = 抹掉描述/规定边界，两头都坏：<br>• fact 塞进优先级链 → <b>过期事实像命令覆盖当前设计</b>（把之后不相关的新项目都硬掰向「B2B 报销」）。<br>• preference 塞进弱背景块 → <b>真实偏好被随意无视</b>（User Story 段照样冒出来）。";}
+    }
+    seg(d,render);render("split");
+  })();
+
+  /* ---------- CARD 6 ---------- */
+  (function(){
+    var d=$("#demo6"); if(!d)return;
+    var nodes=$$(".node",$('[data-role=ring6]',d)),out=$('[data-role=out6]',d),ab=$('[data-role=ab6]',d);
+    function render(v){
+      if(v==="circular"){out.className="readout bad";
+        out.innerHTML="🔁 循环论证：产出和裁判都是 LLM，「AI 给 AI 打分」——分数无法作为客观信号。";}
+      else{out.className="readout good";
+        out.innerHTML="✂️ held-out oracle 斩断循环：<b>硬判定来自 agent 没见过的确定性测试</b>；LLM 只做人类可读的软质量上色，不下硬裁决。";}
+    }
+    seg(d,render);render("circular");
+    $('[data-role=one]',d).addEventListener("click",function(){ab.className="readout good";ab.innerHTML="✅ 单变量：同配置只加 1 个变体 → 指标动了，<b>归因清晰</b>，能证明这层能力有用。";});
+    $('[data-role=two]',d).addEventListener("click",function(){ab.className="readout bad";ab.innerHTML="⚠️ 双变量：同时变架构 + 模型强度 → <b>归因不到具体哪个</b>。我真踩过：差点得出「闭环没用」，拆开才知是饱和假象。";});
+    ab.className="readout";ab.textContent="点上面两个按钮，看为什么一次只能加一层。";
+  })();
+
+  /* ---------- CARD 7 ---------- */
+  (function(){
+    var d=$("#demo7"); if(!d)return;
+    var tl=$('[data-role=tl7]',d);
+    var sync=[
+      ["t0","Activity 收到任务 → 派给 Agent worker"],
+      ["t1","IDLE Activity 占着线程<b>死等</b> Agent 干完 · worker 空转浪费",1],
+      ["t2","Agent 终于返回 → Activity 才继续"],
+      ["done","吞吐被拖死：一个慢 Agent 卡住整条 worker"]
+    ];
+    var async=[
+      ["t0","Activity：task_token 塞 payload → js.publish 到 JetStream"],
+      ["t1","raise_complete_async() 挂起 · <b>worker 立刻释放</b>去接别的任务",2],
+      ["t2","Agent 异步处理…（幂等：按 task_id/uuid5 查结果表）"],
+      ["t3","handle.complete() → 结果回写 Temporal event history"],
+      ["done","worker 从 event history 读结果 · 高吞吐 + 可重放"]
+    ];
+    function render(rows){
+      tl.innerHTML="";
+      rows.forEach(function(r){
+        var row=document.createElement("div");row.className="tlrow";
+        var who=document.createElement("div");who.className="who";who.textContent=r[0];
+        var ev=document.createElement("div");ev.className="ev"+(r[2]===1?" idle":r[2]===2?" free":"");ev.innerHTML=r[1];
+        row.appendChild(who);row.appendChild(ev);tl.appendChild(row);
+      });
+    }
+    seg(d,function(v){render(v==="sync"?sync:async);});
+    render(sync);
+  })();
+
+  /* reveal */
+  if(!(window.matchMedia&&matchMedia("(prefers-reduced-motion:reduce)").matches)){
+    var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.style.opacity=1;e.target.style.transform="none";io.unobserve(e.target);}});},{threshold:0.06,rootMargin:"0px 0px -6% 0px"});
+    $$(".card").forEach(function(c){c.style.opacity=0;c.style.transform="translateY(14px)";c.style.transition="opacity .6s cubic-bezier(0.2,0,0,1),transform .6s cubic-bezier(0.2,0,0,1)";io.observe(c);});
+  }
+})();
+</script>
+</body>
+</html>

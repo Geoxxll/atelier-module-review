@@ -215,24 +215,54 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px}
     <div class="eyebrow">通勤 5 分钟 · 每个概念一张交互图</div>
     <h1>把亮点讲脆，不是背下来。</h1>
     <p class="lead">7 张卡，每张 = 面试官会问什么 · 30 秒脆讲法 · 一个动手就懂的图 · 深挖时你靠什么扛。点、拖、切——机制自己会说话。</p>
-    <p class="hint">★ 星标两张（②饱和假象 · ⑤fact vs preference）是你 grill 里暴露的天花板缺口，重点练表达。</p>
+    <p class="hint">★ 星标两张（③饱和假象 · ⑥fact vs preference）是你 grill 里暴露的天花板缺口，重点练表达。</p>
   </div>
 </header>
 
 <main>
   <nav class="toc" aria-label="目录">
-    <a href="#c1">01 闭环 vs 开环</a>
-    <a href="#c2">02 饱和假象 ★</a>
-    <a href="#c3">03 对抗式 Reviewer</a>
-    <a href="#c4">04 并行 + 归并升级梯</a>
-    <a href="#c5">05 三类记忆 ★</a>
-    <a href="#c6">06 Eval 方法论</a>
-    <a href="#c7">07 Temporal 异步完成</a>
+    <a href="#c7">01 Temporal 异步完成</a>
+    <a href="#c1">02 闭环 vs 开环</a>
+    <a href="#c2">03 饱和假象 ★</a>
+    <a href="#c3">04 对抗式 Reviewer</a>
+    <a href="#c4">05 并行 + 归并升级梯</a>
+    <a href="#c5">06 三类记忆 ★</a>
+    <a href="#c6">07 Eval 方法论</a>
   </nav>
 
   <!-- ===== CARD 1 ===== -->
-  <section class="card" id="c1">
-    <div class="card-eyebrow">概念 01 · 核心</div>
+  <section class="card" id="c7">
+    <div class="card-eyebrow">概念 01 · 主旨 · 贯穿全项目</div>
+    <h2>Temporal async completion + 确定性铁律</h2>
+    <p class="sub">整个多 Agent 流水线的持久化执行底座——简历领衔条、贯穿全项目的主旨。</p>
+
+    <div class="block-label">面试官会问</div>
+    <div class="ask">"Activity 派任务给 Agent，为什么不同步等它干完？还有 Temporal 那条『workflow 里不准 uuid4/now』是为什么？"</div>
+
+    <div class="block-label">30 秒脆讲法</div>
+    <div class="crisp">Activity <strong>不同步等</strong>：NATS at-least-once 派发后 <strong>worker 立刻释放</strong>去处理别的（吞吐）；Agent 异步完成经 <strong>async completion 回写 event history</strong> + 放新 task 通知 worker 读结果。确定性铁律：有副作用 I/O 必须 Activity 包裹，workflow 只放确定性编排——<strong>回放时从 event history 拿已记录结果、不重入</strong>（否则 uuid4/now 回放值不同→历史不匹配→非确定性错），所以 task_id 用 <strong>uuid5</strong>。</div>
+
+    <div class="block-label">动手：切两种模式，看 worker 那条命</div>
+    <div class="demo" id="demo7">
+      <div class="controls">
+        <div class="seg" data-role="mode">
+          <button data-v="sync" class="on">同步阻塞</button>
+          <button data-v="async">async completion</button>
+        </div>
+      </div>
+      <div class="tl" data-role="tl7"></div>
+    </div>
+
+    <div class="block-label">深挖锚点</div>
+    <ul class="anchors">
+      <li>async completion 三件套：<code>task_token</code> 塞 payload · <code>raise_complete_async()</code> 挂起 · <code>handle.complete()</code> 回填。</li>
+      <li>幂等：消费层按 <code>task_id</code>(uuid5) 查结果表，命中即短路、不重跑 LLM。</li>
+      <li>与「自己写状态机 + 重试」的区别：Temporal 免费给你<b>持久化 + 断点重放 + 可溯源</b>的 event history。</li>
+    </ul>
+  </section>
+
+<section class="card" id="c1">
+    <div class="card-eyebrow">概念 02 · 核心</div>
     <h2>闭环 Coder：一次性生成 vs 读改测自愈</h2>
     <p class="sub">你项目的皇冠——不是「用了个框架」，而是「debug 过范式本身的失效模式」。</p>
 
@@ -276,9 +306,8 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px}
     </ul>
   </section>
 
-  <!-- ===== CARD 2 ===== -->
-  <section class="card" id="c2">
-    <div class="card-eyebrow">概念 02 · ★ 表达天花板</div>
+<section class="card" id="c2">
+    <div class="card-eyebrow">概念 03 · ★ 表达天花板</div>
     <h2>饱和假象：模型变强，闭环就白做了？</h2>
     <p class="sub">最危险的追问。内容你懂，练的是「30 秒讲脆」。</p>
 
@@ -309,9 +338,8 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px}
     </ul>
   </section>
 
-  <!-- ===== CARD 3 ===== -->
-  <section class="card" id="c3">
-    <div class="card-eyebrow">概念 03 · 范式</div>
+<section class="card" id="c3">
+    <div class="card-eyebrow">概念 04 · 范式</div>
     <h2>对抗式 Reviewer：防 self-gaming</h2>
     <p class="sub">对抗 = 干净屋独立重跑 + 上下文隔离。Agent 给自己作业打分，天然不可信。</p>
 
@@ -346,9 +374,8 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px}
     </ul>
   </section>
 
-  <!-- ===== CARD 4 ===== -->
-  <section class="card" id="c4">
-    <div class="card-eyebrow">概念 04 · 并行</div>
+<section class="card" id="c4">
+    <div class="card-eyebrow">概念 05 · 并行</div>
     <h2>并行编排 + 确定性归并升级梯</h2>
     <p class="sub">切 / 并 / 合三段都为「可行性」服务。确定性高危环节，能用确定性解的绝不引入 LLM。</p>
 
@@ -390,9 +417,8 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px}
     </ul>
   </section>
 
-  <!-- ===== CARD 5 ===== -->
-  <section class="card" id="c5">
-    <div class="card-eyebrow">概念 05 · ★ 表达天花板</div>
+<section class="card" id="c5">
+    <div class="card-eyebrow">概念 06 · ★ 表达天花板</div>
     <h2>三类记忆：同源，凭什么拆三套</h2>
     <p class="sub">情景 / 语义 / 程序性，按信号源 · 形态 · 注入语义刻意切分。最深一层：fact vs preference。</p>
 
@@ -432,9 +458,8 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px}
     </ul>
   </section>
 
-  <!-- ===== CARD 6 ===== -->
-  <section class="card" id="c6">
-    <div class="card-eyebrow">概念 06 · 方法论脊柱</div>
+<section class="card" id="c6">
+    <div class="card-eyebrow">概念 07 · 方法论脊柱</div>
     <h2>Eval：怎么破「AI 给 AI 打分」的循环</h2>
     <p class="sub">eval 的最强火力穿在①②身上——是它帮你发现死亡链、量化 Reviewer regime。</p>
 
@@ -471,37 +496,6 @@ input[type=range]{flex:1;accent-color:var(--accent);height:4px}
       <li>六接缝 harness（面试前记名字）：<code>case / variant / judge / metric / fixture / recorder / harness</code>，内核不 import 任何 agent。</li>
       <li>归因反例（现成）：Q3 的 α 混淆「架构×模型强度」就是一次多变量污染归因事故。</li>
       <li>台账（LEDGER）：改 prompt/skill/SOP 后连同 commit + 模型一起回看趋势。</li>
-    </ul>
-  </section>
-
-  <!-- ===== CARD 7 ===== -->
-  <section class="card" id="c7">
-    <div class="card-eyebrow">概念 07 · 分布式基座</div>
-    <h2>Temporal async completion + 确定性铁律</h2>
-    <p class="sub">③ 并行编排器本身就跑在 Temporal 上。这是二线咬钩后端面试官的钩子。</p>
-
-    <div class="block-label">面试官会问</div>
-    <div class="ask">"Activity 派任务给 Agent，为什么不同步等它干完？还有 Temporal 那条『workflow 里不准 uuid4/now』是为什么？"</div>
-
-    <div class="block-label">30 秒脆讲法</div>
-    <div class="crisp">Activity <strong>不同步等</strong>：NATS at-least-once 派发后 <strong>worker 立刻释放</strong>去处理别的（吞吐）；Agent 异步完成经 <strong>async completion 回写 event history</strong> + 放新 task 通知 worker 读结果。确定性铁律：有副作用 I/O 必须 Activity 包裹，workflow 只放确定性编排——<strong>回放时从 event history 拿已记录结果、不重入</strong>（否则 uuid4/now 回放值不同→历史不匹配→非确定性错），所以 task_id 用 <strong>uuid5</strong>。</div>
-
-    <div class="block-label">动手：切两种模式，看 worker 那条命</div>
-    <div class="demo" id="demo7">
-      <div class="controls">
-        <div class="seg" data-role="mode">
-          <button data-v="sync" class="on">同步阻塞</button>
-          <button data-v="async">async completion</button>
-        </div>
-      </div>
-      <div class="tl" data-role="tl7"></div>
-    </div>
-
-    <div class="block-label">深挖锚点</div>
-    <ul class="anchors">
-      <li>async completion 三件套：<code>task_token</code> 塞 payload · <code>raise_complete_async()</code> 挂起 · <code>handle.complete()</code> 回填。</li>
-      <li>幂等：消费层按 <code>task_id</code>(uuid5) 查结果表，命中即短路、不重跑 LLM。</li>
-      <li>与「自己写状态机 + 重试」的区别：Temporal 免费给你<b>持久化 + 断点重放 + 可溯源</b>的 event history。</li>
     </ul>
   </section>
 
